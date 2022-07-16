@@ -38,8 +38,6 @@ if __name__ == "__main__":
     Save_to_File = True
     CreateData = False
     
-    
-    
     if(Save_to_File):
         file_path = Simulations_path + r"\\Results\\Scores\\" + dt_string_for_save + r".txt"
         sys.stdout = open(file_path, "w")
