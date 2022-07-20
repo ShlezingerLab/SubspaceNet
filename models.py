@@ -21,7 +21,8 @@ class Deep_Root_Net(nn.Module):
         self.deconv4 = nn.ConvTranspose2d(16, 1, kernel_size= 2)
         # self.ReLU = nn.ReLU()
         # self.SeLU = nn.SELU()
-        self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        # self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        self.LeakyReLU = nn.Tanh()
         # self.Tanh = nn.Tanh()
         self.DropOut = nn.Dropout(0.2)
 
@@ -48,10 +49,6 @@ class Deep_Root_Net(nn.Module):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
             Un = eigenvectors[:, M:]
-            # print(Un[0].shape)
-            # print(torch.angle(Un[0]))
-            # Un = Un * torch.exp(-1j * torch.angle(Un[0]))
-            # print(torch.angle(Un[0]))
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -61,9 +58,7 @@ class Deep_Root_Net(nn.Module):
             DOA_all_list.append(DOA_pred_all)
             roots_to_return = roots
             
-            # print("roots before sorting", roots)
             roots = roots[sorted(range(roots.shape[0]), key = lambda k : abs(abs(roots[k]) - 1))]   # Take only roots which are outside unit circle
-            # print("roots after sorting", roots)
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred_test = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                 # Calculate the DOA our of the phase component
             
@@ -114,14 +109,17 @@ class Deep_Root_Net(nn.Module):
         # New_Rx_tau = self.Create_Autocorr_tensor(X, self.tau).to(torch.float)         # Output shape [Batch size, tau, 2N, N]
         
         ## AutoEncoder Archtecture
-        x = self.LeakyReLU(self.conv1(New_Rx_tau))
+        x = self.conv1(New_Rx_tau)
+        x = self.LeakyReLU(x)
         x = self.conv2(x)
         x = self.LeakyReLU(x)
-        x = self.LeakyReLU(self.conv3(x))
+        x = self.conv3(x)
+        x = self.LeakyReLU(x)
 
         x = self.deconv2(x)
         x = self.LeakyReLU(x)
-        x = self.LeakyReLU(self.deconv3(x))
+        x = self.deconv3(x)
+        x = self.LeakyReLU(x)
         x = self.DropOut(x)
         Rx = self.deconv4(x)  
         Rx_View = Rx.view(Rx.size(0),Rx.size(2),Rx.size(3))                           # Output shape [Batch size, 2N, N]

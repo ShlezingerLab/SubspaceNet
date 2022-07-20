@@ -81,8 +81,8 @@ def Run_Simulation(Model_Train_DataSet,
     ############################
 
     # Create a model from `Deep_Root_Net`
-    model = Deep_Root_Net(tau=tau, ActivationVal=ActivationVal)                              
-    # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=ActivationVal)                              
+    # model = Deep_Root_Net(tau=tau, ActivationVal=ActivationVal)                              
+    model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=ActivationVal)                              
     
     # Load it to the specified device, either gpu or cpu
     model = model.to(device)                                   
@@ -354,40 +354,31 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
   return np.mean(RootMUSIC_list), np.mean(MUSIC_list)
 
 
-def PlotSpectrum(DeepRootMUSIC):
+def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
+  criterion = PRMSELoss()
   Data_Set_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\DataSet"
   fig = plt.figure(figsize=(16, 12), dpi=80)
   PLOT_MUSIC = True
   PLOT_ROOT_MUSIC = True
   PLOT_DeepROOT_MUSIC = True
 
-  ############################
-  ## Create Plottiong  data ##
-  ############################
-  ## Data properties:
-  # DOA's = {10, 50}
-  # tau = 8
-  # N = 8
-  # M = 2
-  # T = 100
-  # nNumberOfSampels = 1
-
-  DataSet_Rx_test = Read_Data(Data_Set_path + r"/CoherentSourcesWithGap/TestData/DataSet_Rx_NarrowBand_coherent_1_M=2_N=8_T=100.h5")
   DataSet_Rx_test = torch.utils.data.DataLoader(DataSet_Rx_test,
                           batch_size=1,
                           shuffle=False,
                           drop_last=False)
   
-  DataSet_x_test = Read_Data(Data_Set_path + r"/CoherentSourcesWithGap/TestData/DataSet_x_NarrowBand_coherent_1_M=2_N=8_T=100.h5")
   DataSet_x_test = torch.utils.data.DataLoader(DataSet_x_test,
                           batch_size=1,
                           shuffle=False,
                           drop_last=False)
   
-  Sys_Model = Read_Data(Data_Set_path + r"/CoherentSourcesWithGap/TestData/Sys_Model_NarrowBand_coherent_1_M=2_N=8_T=100.h5")
-
   model_based_platform = Model_Based_methods(Sys_Model)
 
+  RootMUSIC_loss, MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  DeepRootTest_loss = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      
+  print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))
+  print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+  print("MUSIC Test loss = {}".format(MUSIC_loss))
   print("\n--- Interpretability Stage ---\n")
   ############################
   ## model-based evaluation ##
@@ -415,7 +406,7 @@ def PlotSpectrum(DeepRootMUSIC):
   ############################
   ##  Deep Root_MUSIC eval  ##
   ############################
-  criterion = PRMSELoss()
+
   DeepRootMUSIC.eval()
   with torch.no_grad():
     for i,data in enumerate(DataSet_Rx_test):
@@ -431,10 +422,11 @@ def PlotSpectrum(DeepRootMUSIC):
         # print("DOA_all", DOA_all)
         roots_deep = list(roots_deep.detach().numpy())
         # print("roots_deep", roots_deep)
-        print("Real Angle:", DOA * 180 / np.pi)
-        print("Deep Root-MUSIC Estimated Angle:", Y_pred * 180 / np.pi)
-        print("Deep Root-MUSIC Loss:", Deep_RootMUSIC_loss)
-        print("\n\n")
+        if (Deep_RootMUSIC_loss > 0):
+          print("Real Angle:", DOA * 180 / np.pi)
+          print("Deep Root-MUSIC Estimated Angle:", Y_pred * 180 / np.pi)
+          print("Deep Root-MUSIC Loss:", Deep_RootMUSIC_loss)
+          print("\n\n")
 
   if PLOT_MUSIC:
       ax1 = fig.add_subplot(131)

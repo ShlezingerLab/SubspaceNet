@@ -36,7 +36,9 @@ if __name__ == "__main__":
     ##        Commands        ##
     ############################
     Save_to_File = True
-    CreateData = False
+    CreateData = True
+    Train_mode = True
+    Evaluate_mode = False
     
     if(Save_to_File):
         file_path = Simulations_path + r"\\Results\\Scores\\" + dt_string_for_save + r".txt"
@@ -50,7 +52,7 @@ if __name__ == "__main__":
     ############################
     ##    Data Parameters     ##
     ############################
-    tau = 8
+    tau = 6
     N = 8
     M = 2
     T = 200
@@ -113,73 +115,85 @@ if __name__ == "__main__":
 
     optimal_gamma_val = 0.01
     optimal_bs = 2048
-    lr_list = [0.00001, 0.0001, 0.000001] # maybe optimal to examine for 0.01
+    lr_list = [0.01, 0.001, 0.0001] # maybe optimal to examine for 0.01
     optimal_step = 80
-    epochs = 15
+    epochs = 80
     
-    ############################
-    ###    Run Simulations   ###
-    ############################
     
-    Test_losses = []
-    train_loss_lists = []
-    validation_loss_lists = []
-
-    train_curves = []
-    validation_curves = []
-
-    fig = plt.figure(figsize=(8, 6), dpi=80)
-    print("Description: Loaded lr simulation of 2 Low SNR = {} non-coherent sources".format(SNR))
-    # print("Description: Loading Best results simulation of {} LOW SNR with Lr = {} and Batch Size {}".format(M, optimal_lr, 1500))
-    
-    for lr in lr_list:
-        print("\n--- New Simulation ---\n")
-        print("Simulation parameters:")
-        print("Learning Rate = {}".format(lr))
-        print("Batch Size = {}".format(optimal_bs))
-        print("SNR = {}".format(SNR))
-        print("scenario = {}".format(scenario))
-        print("mode = {}".format(mode))
-        print("Gamma Value = {}".format(optimal_gamma_val))
-        print("Step Value = {}".format(optimal_step))
-        print("Epochs = {}".format(epochs))
-        print("Tau = {}".format(tau))
-        print("Observations = {}".format(T))
+    if (Train_mode):
+        ############################
+        ###    Run Simulations   ###
+        ############################
         
-        model, loss_train_list, loss_valid_list, Test_loss = Run_Simulation(
-                        Model_Train_DataSet = DataSet_Rx_train,
-                        Model_Test_DataSet = DataSet_Rx_test,
-                        tau = tau,
-                        N = N,
-                        optimizer_name = "Adam",
-                        lr_val = lr,
-                        Schedular = True,
-                        weight_decay_val = 1e-9,
-                        step_size_val = optimal_step,
-                        gamma_val = optimal_gamma_val,
-                        num_epochs = epochs,
-                        model_name= "model_tau=8_M=2_70Ksampels_LowSNR_{}".format(SNR),
-                        Bsize = optimal_bs,
-                        Sys_Model = Sys_Model,
-                        load_flag = True,
-                        loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-613_07_2022_21_49",
-                        Plot = False,
-                        DataSetModelBased = DataSet_x_test)
-        
-        train_loss_lists.append(loss_train_list)
-        validation_loss_lists.append(loss_valid_list)
-        Test_losses.append(Test_loss)
-        
-        plt.plot(range(epochs), loss_train_list, label="tr {}".format(lr))
-        plt.plot(range(epochs), loss_valid_list, label="vl {}".format(lr))
+        Test_losses = []
+        train_loss_lists = []
+        validation_loss_lists = []
 
-    plt.title("Learning Curves: Loss per Epoch - different Learning Rates")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.legend(bbox_to_anchor=(0.95,0.5), loc="center left", borderaxespad=0)
-    
-    if(Save_to_File):
-        plt.savefig(Simulations_path + r"\\Results\\Plots\\" + dt_string_for_save + r".png")
-    else:
-        plt.show()
-        os.system("pause")
+        train_curves = []
+        validation_curves = []
+
+        fig = plt.figure(figsize=(8, 6), dpi=80)
+        print("Description:  simulation of 2 Low SNR = {} non-coherent sources".format(SNR))
+        # print("Description: Loading Best results simulation of {} LOW SNR with Lr = {} and Batch Size {}".format(M, optimal_lr, 1500))
+        
+        for lr in lr_list:
+            print("\n--- New Simulation ---\n")
+            print("Simulation parameters:")
+            print("Learning Rate = {}".format(lr))
+            print("Batch Size = {}".format(optimal_bs))
+            print("SNR = {}".format(SNR))
+            print("scenario = {}".format(scenario))
+            print("mode = {}".format(mode))
+            print("Gamma Value = {}".format(optimal_gamma_val))
+            print("Step Value = {}".format(optimal_step))
+            print("Epochs = {}".format(epochs))
+            print("Tau = {}".format(tau))
+            print("Observations = {}".format(T))
+            
+            model, loss_train_list, loss_valid_list, Test_loss = Run_Simulation(
+                            Model_Train_DataSet = DataSet_Rx_train,
+                            Model_Test_DataSet = DataSet_Rx_test,
+                            tau = tau,
+                            N = N,
+                            optimizer_name = "Adam",
+                            lr_val = lr,
+                            Schedular = True,
+                            weight_decay_val = 1e-9,
+                            step_size_val = optimal_step,
+                            gamma_val = optimal_gamma_val,
+                            num_epochs = epochs,
+                            model_name= "model_tau=8_M=2_70Ksampels_LowSNR_{}".format(SNR),
+                            Bsize = optimal_bs,
+                            Sys_Model = Sys_Model,
+                            load_flag = False,
+                            loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-6",
+                            Plot = False,
+                            DataSetModelBased = DataSet_x_test)
+            
+            train_loss_lists.append(loss_train_list)
+            validation_loss_lists.append(loss_valid_list)
+            Test_losses.append(Test_loss)
+            
+            plt.plot(range(epochs), loss_train_list, label="tr {}".format(lr))
+            plt.plot(range(epochs), loss_valid_list, label="vl {}".format(lr))
+
+        plt.title("Learning Curves: Loss per Epoch - different Learning Rates")
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
+        plt.legend(bbox_to_anchor=(0.95,0.5), loc="center left", borderaxespad=0)
+        
+        if(Save_to_File):
+            plt.savefig(Simulations_path + r"\\Results\\Plots\\" + dt_string_for_save + r".png")
+        else:
+            plt.show()
+    if (Evaluate_mode):
+        loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-616_07_2022_19_28"
+        # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
+        # Load it to the specified device, either gpu or cpu
+        model = model.to(device)         
+        if torch.cuda.is_available() == False:
+            model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
+
+        PlotSpectrum(model, DataSet_Rx_test, DataSet_x_test,Sys_Model)
+    # os.system("pause")
+        
