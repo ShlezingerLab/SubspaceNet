@@ -83,6 +83,7 @@ def Run_Simulation(Model_Train_DataSet,
     # Create a model from `Deep_Root_Net`
     # model = Deep_Root_Net(tau=tau, ActivationVal=ActivationVal)                              
     model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=ActivationVal)                              
+    # model = Deep_Root_Net_AntiRectifier_Extend(tau=tau, ActivationVal=ActivationVal)                              
     
     # Load it to the specified device, either gpu or cpu
     model = model.to(device)                                   

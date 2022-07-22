@@ -60,7 +60,7 @@ if __name__ == "__main__":
     Train_Test_Ratio = 0.05
     scenario = "NarrowBand"
     mode = "non-coherent"
-    SNR = -6
+    SNR = -8
     
     ############################
     ###   Create Data Sets   ###
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
     optimal_gamma_val = 0.01
     optimal_bs = 2048
-    lr_list = [0.01, 0.001, 0.0001] # maybe optimal to examine for 0.01
+    lr_list = [0.001] # maybe optimal to examine for 0.01
     optimal_step = 80
     epochs = 80
     
