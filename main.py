@@ -35,8 +35,8 @@ if __name__ == "__main__":
     ############################
     ##        Commands        ##
     ############################
-    Save_to_File = True
-    CreateData = True
+    Save_to_File = False
+    CreateData = False
     Train_mode = True
     Evaluate_mode = False
     
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     Train_Test_Ratio = 0.05
     scenario = "NarrowBand"
     mode = "non-coherent"
-    SNR = -8
+    SNR = -6
     
     ############################
     ###   Create Data Sets   ###
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         validation_curves = []
 
         fig = plt.figure(figsize=(8, 6), dpi=80)
-        print("Description:  simulation of 2 Low SNR = {} non-coherent sources".format(SNR))
+        print("Description: Shrinked model  simulation of 2 Low SNR = {} non-coherent sources".format(SNR))
         # print("Description: Loading Best results simulation of {} LOW SNR with Lr = {} and Batch Size {}".format(M, optimal_lr, 1500))
         
         for lr in lr_list:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
                             Bsize = optimal_bs,
                             Sys_Model = Sys_Model,
                             load_flag = False,
-                            loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-6",
+                            loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-620_07_2022_00_54",
                             Plot = False,
                             DataSetModelBased = DataSet_x_test)
             

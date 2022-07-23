@@ -295,25 +295,20 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
     def __init__(self, tau, ActivationVal):
         self.tau = tau
         super(Deep_Root_Net_AntiRectifier_Extend, self).__init__()
-        self.conv1 = nn.Conv2d(self.tau, 8, kernel_size = 2)
-        # self.fc1 = nn.Linear(32, 16)
-        
-        self.conv2 = nn.Conv2d(16, 32, kernel_size = 2)
-        # self.fc2 = nn.Linear(64, 32)
-        
-        self.conv3 = nn.Conv2d(64, 128, kernel_size = 2)
-        # self.fc3 = nn.Linear(128, 64)
-        
-        self.deconv2 = nn.ConvTranspose2d(256, 64, kernel_size= 2)
-        # self.fc4 = nn.Linear(64, 32)
-        
-        self.deconv3 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
-        # self.fc5 = nn.Linear(32, 16)
-        
-        self.deconv4 = nn.ConvTranspose2d(64, 1, kernel_size= 2)
-        # self.deconv5 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
+        self.conv1 = nn.Conv2d(self.tau, 16, kernel_size = 2)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size = 2)
+        # self.conv3 = nn.Conv2d(64, 64, kernel_size = 2)
+        # self.conv4 = nn.Conv2d(128, 128, kernel_size = 2)
+        # self.conv5 = nn.Conv2d(256, 256, kernel_size = 2)
+
+        # self.deconv0 = nn.ConvTranspose2d(512, 128, kernel_size= 2)
+        # self.deconv1 = nn.ConvTranspose2d(256, 64, kernel_size= 2)
+        # self.deconv2 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
+        self.deconv3 = nn.ConvTranspose2d(128, 16, kernel_size= 2)
+        self.deconv4 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
         self.ReLU = nn.ReLU()
         self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        self.LeakyReLU = nn.tanh(ActivationVal)
         self.DropOut = nn.Dropout(0.2)
 
     def AntiRectifier(self, X):
@@ -347,10 +342,6 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
             Un = eigenvectors[:, M:]
-            # print(Un[0].shape)
-            # print(torch.angle(Un[0]))
-            # Un = Un * torch.exp(-1j * torch.angle(Un[0]))
-            # print(torch.angle(Un[0]))
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -415,28 +406,30 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         ## AutoEncoder Archtecture
         x = self.conv1(New_Rx_tau)
         x = self.AntiRectifier(x)
-        # x = self.fc1(x)
-
-        # print(x.shape)
+        
         x = self.conv2(x)
         x = self.AntiRectifier(x)
-        # x = self.fc2(x)
-        # print(x.shape)
 
-        x = self.conv3(x)
-        x = self.AntiRectifier(x)
-        # x = self.fc3(x)
-        # print(x.shape)
+        # x = self.conv3(x)
+        # x = self.AntiRectifier(x)
 
-        x = self.deconv2(x)
-        x = self.AntiRectifier(x)
-        # x = self.fc4(x)
-        # print(x.shape)
+        # x = self.conv4(x)
+        # x = self.AntiRectifier(x)
+
+        # x = self.conv5(x)
+        # x = self.AntiRectifier(x)
+
+        # x = self.deconv0(x)
+        # x = self.AntiRectifier(x)
+
+        # x = self.deconv1(x)
+        # x = self.AntiRectifier(x)
+
+        # x = self.deconv2(x)
+        # x = self.AntiRectifier(x)
 
         x = self.deconv3(x)
         x = self.AntiRectifier(x)
-        # x = self.fc5(x)
-        # print(x.shape)
 
         x = self.DropOut(x)
         Rx = self.deconv4(x)
