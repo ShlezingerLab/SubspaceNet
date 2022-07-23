@@ -21,8 +21,8 @@ class Deep_Root_Net(nn.Module):
         self.deconv4 = nn.ConvTranspose2d(16, 1, kernel_size= 2)
         # self.ReLU = nn.ReLU()
         # self.SeLU = nn.SELU()
-        # self.LeakyReLU = nn.LeakyReLU(ActivationVal)
-        self.LeakyReLU = nn.Tanh()
+        self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        # self.LeakyReLU = nn.Tanh()
         # self.Tanh = nn.Tanh()
         self.DropOut = nn.Dropout(0.2)
 
@@ -296,19 +296,21 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         self.tau = tau
         super(Deep_Root_Net_AntiRectifier_Extend, self).__init__()
         self.conv1 = nn.Conv2d(self.tau, 16, kernel_size = 2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size = 2)
-        # self.conv3 = nn.Conv2d(64, 64, kernel_size = 2)
-        # self.conv4 = nn.Conv2d(128, 128, kernel_size = 2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size = 2)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size = 2)
+        self.conv4 = nn.Conv2d(64, 128, kernel_size = 2)
+        self.conv5 = nn.Conv2d(128, 256, kernel_size = 2)
         # self.conv5 = nn.Conv2d(256, 256, kernel_size = 2)
 
         # self.deconv0 = nn.ConvTranspose2d(512, 128, kernel_size= 2)
-        # self.deconv1 = nn.ConvTranspose2d(256, 64, kernel_size= 2)
-        # self.deconv2 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
-        self.deconv3 = nn.ConvTranspose2d(128, 16, kernel_size= 2)
-        self.deconv4 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
+        self.deconv1 = nn.ConvTranspose2d(256, 128, kernel_size= 2)
+        self.deconv2 = nn.ConvTranspose2d(128, 64, kernel_size= 2)
+        self.deconv3 = nn.ConvTranspose2d(64, 32, kernel_size= 2)
+        self.deconv4 = nn.ConvTranspose2d(32, 16, kernel_size= 2)
+        self.deconv5 = nn.ConvTranspose2d(16, 1, kernel_size= 2)
         self.ReLU = nn.ReLU()
-        self.LeakyReLU = nn.LeakyReLU(ActivationVal)
-        self.LeakyReLU = nn.tanh(ActivationVal)
+        # self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        self.Tanh = nn.Tanh()
         self.DropOut = nn.Dropout(0.2)
 
     def AntiRectifier(self, X):
@@ -400,40 +402,37 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         ## Input shape of signal X(t): [Batch size, N, T]
         self.N = New_Rx_tau.shape[-1]
         self.BATCH_SIZE = New_Rx_tau.shape[0]
-
-        # New_Rx_tau = self.Create_Autocorr_tensor(X, self.tau).to(torch.float)         # Output shape [Batch size, tau, 2N, N]
         
         ## AutoEncoder Archtecture
         x = self.conv1(New_Rx_tau)
-        x = self.AntiRectifier(x)
+        x = self.Tanh(x)
         
         x = self.conv2(x)
-        x = self.AntiRectifier(x)
+        x = self.Tanh(x)
 
-        # x = self.conv3(x)
-        # x = self.AntiRectifier(x)
+        x = self.conv3(x)
+        x = self.Tanh(x)
 
-        # x = self.conv4(x)
-        # x = self.AntiRectifier(x)
+        x = self.conv4(x)
+        x = self.Tanh(x)
 
-        # x = self.conv5(x)
-        # x = self.AntiRectifier(x)
+        x = self.conv5(x)
+        x = self.Tanh(x)
 
-        # x = self.deconv0(x)
-        # x = self.AntiRectifier(x)
+        x = self.deconv1(x)
+        x = self.Tanh(x)
 
-        # x = self.deconv1(x)
-        # x = self.AntiRectifier(x)
-
-        # x = self.deconv2(x)
-        # x = self.AntiRectifier(x)
+        x = self.deconv2(x)
+        x = self.Tanh(x)
 
         x = self.deconv3(x)
-        x = self.AntiRectifier(x)
+        x = self.Tanh(x)
+
+        x = self.deconv4(x)
+        x = self.Tanh(x)
 
         x = self.DropOut(x)
-        Rx = self.deconv4(x)
-        # print(Rx.shape)
+        Rx = self.deconv5(x)
 
         Rx_View = Rx.view(Rx.size(0),Rx.size(2),Rx.size(3))                           # Output shape [Batch size, 2N, N]
 
@@ -446,6 +445,6 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         Rz = self.Gramian_matrix(Kx_tag, eps= 1)                                           # Output shape [Batch size, N, N]
 
         ## Rest of Root MUSIC algorithm
-        # print(Rz)
         DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
         return DOA, DOA_all, roots
+    
