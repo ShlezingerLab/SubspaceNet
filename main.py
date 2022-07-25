@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ##        Commands        ##
     ############################
     Save_to_File = True
-    CreateData = True
+    CreateData = False
     Train_mode = True
     Evaluate_mode = False
     
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     ############################
     ##    Data Parameters     ##
     ############################
-    tau = 4
+    tau = 2
     N = 8
     M = 2
     T = 200
@@ -115,9 +115,9 @@ if __name__ == "__main__":
 
     optimal_gamma_val = 0.01
     optimal_bs = 2048
-    lr_list = [0.00001, 0.000001] # maybe optimal to examine for 0.01
+    lr_list = [0.001] # maybe optimal to examine for 0.01
     optimal_step = 80
-    epochs = 20
+    epochs = 80
     
     
     if (Train_mode):
@@ -165,7 +165,7 @@ if __name__ == "__main__":
                             model_name= "model_tau=8_M=2_70Ksampels_LowSNR_{}".format(SNR),
                             Bsize = optimal_bs,
                             Sys_Model = Sys_Model,
-                            load_flag = True,
+                            load_flag = False,
                             loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-624_07_2022_17_06",
                             Plot = False,
                             DataSetModelBased = DataSet_x_test)
