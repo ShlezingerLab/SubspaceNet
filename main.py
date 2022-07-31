@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ##        Commands        ##
     ############################
     Save_to_File = True
-    CreateData = False
+    CreateData = True
     Train_mode = True
     Evaluate_mode = False
     
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     ############################
     ##    Data Parameters     ##
     ############################
-    tau = 2
+    tau = 6
     N = 8
     M = 2
     T = 200
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     Train_Test_Ratio = 0.05
     scenario = "NarrowBand"
     mode = "non-coherent"
-    SNR = -6
+    SNR = -2
     
     ############################
     ###   Create Data Sets   ###
