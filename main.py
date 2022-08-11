@@ -26,7 +26,7 @@ if __name__ == "__main__":
     saving_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\Weights\Models"
     Simulations_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\\Code\\Simulations"
 
-    SNR_list = [-5, -2, -1]
+    SNR_list = [10, 9, 8, 7, 6, 5]
     for SNR_val in SNR_list:
         Set_Overall_Seed()
         now = datetime.now()
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         tau = 8
         N = 8
         M = 2
-        T = 200
+        T = 20
         nNumberOfSampels = 100000
         Train_Test_Ratio = 0.05
         scenario = "NarrowBand"
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         ############################
 
         optimal_gamma_val = 0.01
-        optimal_bs = 2048
+        optimal_bs = 1024
         lr_list = [0.001] # maybe optimal to examine for 0.01
         optimal_step = 80
         epochs = 80
@@ -168,7 +168,7 @@ if __name__ == "__main__":
                                 Bsize = optimal_bs,
                                 Sys_Model = Sys_Model,
                                 load_flag = False,
-                                loading_path = saving_path + r"/model_tau=8_M=2_70Ksampels_LowSNR_-301_08_2022_21_08",
+                                loading_path = saving_path + r"/model_tau=8_M=2_100Ksampels_LowSNR_-203_08_2022_15_56",
                                 Plot = False,
                                 DataSetModelBased = DataSet_x_test)
                 
