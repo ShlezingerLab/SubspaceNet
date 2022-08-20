@@ -207,7 +207,6 @@ def train_model(model, Train_data, Valid_data,
             ## Backpropogation stage
             try:                         
               train_loss.backward()
-              # print("loss updated")
             except RuntimeError:
               print("linalg error")
               pass
@@ -239,7 +238,7 @@ def train_model(model, Train_data, Valid_data,
         model.eval()
         valid_length = 0
         
-        with torch.no_grad():                                                   # Gradients Calculation isnt required for evaluation
+        with torch.no_grad():                                                   # Gradients calculation isn't required for evaluation
             for i, data in enumerate(Valid_data):
                 Rx, DOA = data
                 valid_length += DOA.shape[0]

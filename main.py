@@ -26,7 +26,9 @@ if __name__ == "__main__":
     saving_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\Weights\Models"
     Simulations_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\\Code\\Simulations"
 
-    SNR_list = [10, 9, 8, 7, 6, 5]
+    SNR_list = [9]
+    # SNR_list = [6]
+    # SNR_list = [8, 7, 6]
     for SNR_val in SNR_list:
         Set_Overall_Seed()
         now = datetime.now()
@@ -38,7 +40,7 @@ if __name__ == "__main__":
         ##        Commands        ##
         ############################
         Save_to_File = True
-        CreateData = True
+        CreateData = False
         Train_mode = True
         Evaluate_mode = False
         
@@ -115,12 +117,11 @@ if __name__ == "__main__":
         ##   Training parameters  ##
         ############################
 
-        optimal_gamma_val = 0.01
-        optimal_bs = 1024
-        lr_list = [0.001] # maybe optimal to examine for 0.01
+        optimal_gamma_val = 1
+        optimal_bs = 2048
+        lr_list = [0.0001, 0.00001] # maybe optimal to examine for 0.01
         optimal_step = 80
-        epochs = 80
-        
+        epochs = 40
         
         if (Train_mode):
             ############################
@@ -167,8 +168,8 @@ if __name__ == "__main__":
                                 model_name= "model_tau=8_M=2_100Ksampels_LowSNR_{}".format(SNR),
                                 Bsize = optimal_bs,
                                 Sys_Model = Sys_Model,
-                                load_flag = False,
-                                loading_path = saving_path + r"/model_tau=8_M=2_100Ksampels_LowSNR_-203_08_2022_15_56",
+                                load_flag = True,
+                                loading_path = saving_path + r"model_tau=8_M=2_100Ksampels_LowSNR_812_08_2022_22_51",
                                 Plot = False,
                                 DataSetModelBased = DataSet_x_test)
                 
