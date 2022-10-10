@@ -44,8 +44,8 @@ def Read_Data(Data_path):
 
 def torch_Autocorr_mat_for_data_loader(X, lag):
     '''
-    This function compute the autocorrelation matrices of the T sampels
-    x(t), t=1,,,T for a given lag.
+    This function compute the autocorrelation matrices of the T samples
+    x(t), t=1, ... ,T for a given lag.
     @ X(input) = Sampels matrix input shape [N, T] 
     @ lag(input) = the requested delay of the Autocorrelation calculation
     @ Rx_lag = the autocorrelation matrix in a given lag []

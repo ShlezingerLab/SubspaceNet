@@ -6,34 +6,49 @@ from useful_func import *
 import matplotlib.pyplot as plt
 
 class Model_Based_methods(object):
-    def __init__(self,System_model):
+    def __init__(self, System_model):
         self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for represantation of the MUSIC spectrum
         self.system_model = System_model
         self.dist = System_model.dist
         self.M = System_model.M
+        self.N = System_model.N
         self.dist = System_model.dist
 
-    def Classic_MUSIC(self, X, NUM_OF_SOURCES):
+    def Classic_MUSIC(self, X, NUM_OF_SOURCES, SPS=False, sub_array_size=0):
         '''
-        Implamentation of the model-based MUSIC algorithm
-        in Narrowband scenario.
-
+        Implementation of the model-based MUSIC algorithm in Narrow-band scenario.
+        
         Input:
-        @ X = sampels vector shape : Nx1
-        @ NUM_OF_SOURCES = indication flag for the knowladge of number of sources
+        @ X = samples vector shape : Nx1
+        @ NUM_OF_SOURCES = known number of sources flag
+        @ SPS = pre-processing Spatial smoothing algorithm flag
+        @ sub_array_size = size of sub array for spatial smoothing
         
         Output:
-        @ 
-
+        @ DOA_pred = the predicted DOA's
+        @ Spectrum = the MUSIC spectrum
+        @ M = number of estimated/given sources
+        
         '''
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
             M = self.M                                                
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
             # clustring technique                                   
             pass
-        R_x = np.cov(X)
-        # print(R_x)                                                            # Create covariance matrix from sampels
-        # R_x = autocor_mat(X, lag =0)                                          # Create covariance matrix from sampels
+        if SPS:
+            number_of_sensors = self.N
+            number_of_sub_arrays = number_of_sensors - sub_array_size + 1
+            
+            ## Averaged covariance matrix
+            R_x = np.zeros((sub_array_size, sub_array_size)) + 1j * np.zeros((sub_array_size, sub_array_size))
+            for j in range(number_of_sub_arrays):
+                X_sub = X[j:j + sub_array_size,:]
+                R_x += np.cov(X_sub)
+            R_x /= number_of_sub_arrays
+            # R_x = np.mean(np.array(Rx_sub_arrays), 0)
+        else:
+            R_x = np.cov(X)                                                     # Create covariance matrix from samples
+
         eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
         Un = eigenvectors[:, M:]                                                # Take only the eigenvectors associated with Noise subspace 
         Spectrum,_= self.spectrum_calculation(Un)
@@ -42,30 +57,59 @@ class Model_Based_methods(object):
         DOA_pred.sort(key = lambda x: Spectrum[x], reverse = True)
         return DOA_pred, Spectrum, M                                                    # return estimated DOA
 
-    def Classic_Root_MUSIC(self, X, NUM_OF_SOURCES, f=1):
+    def Classic_Root_MUSIC(self, X, NUM_OF_SOURCES, SPS=False, sub_array_size=0):
+        '''
+        Implementation of the model-based Root-MUSIC algorithm in Narrow-band scenario.
+        
+        Input:
+        @ X = samples vector shape : Nx1
+        @ NUM_OF_SOURCES = known number of sources flag
+        @ SPS = pre-processing Spatial smoothing algorithm flag
+        @ sub_array_size = size of sub array for spatial smoothing
+        
+        Output:
+        @ DOA_pred = the predicted DoA's
+        @ roots = the roots of true DoA's 
+        @ M = number of estimated/given sources
+        @ roots_angels_all = all the roots produced by the algorithm
+        @ DOA_pred_all = all the angels produced by the algorithm 
+        '''
         if NUM_OF_SOURCES:                                                              # NUM_OF_SOURCES = TRUE : number of sources is given
             M = self.M
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues        
             # clustring technique
             pass
-        R_x = np.cov(X)                                                         # Create covariance matrix from sampels
+        
+        if SPS:
+            number_of_sensors = self.N
+            number_of_sub_arrays = number_of_sensors - sub_array_size + 1
+            
+            ## Averaged covariance matrix
+            R_x = np.zeros((sub_array_size, sub_array_size)) + 1j * np.zeros((sub_array_size, sub_array_size))
+            for j in range(number_of_sub_arrays):
+                X_sub = X[j:j + sub_array_size,:]
+                R_x += np.cov(X_sub)
+            R_x /= number_of_sub_arrays
+            # R_x = np.mean(np.array(Rx_sub_arrays), 0)
+        else:
+            R_x = np.cov(X)                                                     # Create covariance matrix from samples
+        
         eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
         Us, Un = eigenvectors[:, :M] , eigenvectors[:, M:]
         F = Un @ np.conj(Un).T                                                  # Set F as the matrix contains Information
         coeff = sum_of_diag(F)                                                  # Calculate the sum of the diagonals of F
-        # print(coeff)
         roots = list(find_roots(coeff))                                         
                                                                                 # By setting the diagonals as the coefficients of the polynomial
                                                                                 # Calculate its roots
-        # print(roots)
-        roots.sort(key = lambda x : abs(abs(x) - 1))                            # Take only roots which are outside unit circle 
-        roots1 = [root for root in roots if ((abs(root) - 1) < 0)][:M]
-        # roots1 = roots[:2 * M:2]                                              # Take the M most closest to the unit circle roots
-        roots_angels = np.angle(roots1)                                         # Calculate the phase component of the roots 
-        DOA_pred = np.arcsin((1/(2 * np.pi * self.dist * f)) * roots_angels)    # Calculate the DOA our of the phase component
-        DOA_pred = (180 / np.pi) * DOA_pred                                     # Convert from radians to Deegres
+        roots.sort(key = lambda x : abs(abs(x) - 1))                             
+        roots_inside = [root for root in roots if ((abs(root) - 1) < 0)][:M]    # Take only roots which are inside unit circle
+        
+        roots_angels = np.angle(roots_inside)                                   # Calculate the phase component of the roots 
+        DOA_pred = np.arcsin((1/(2 * np.pi * self.dist)) * roots_angels)        # Calculate the DOA out of the phase component
+        DOA_pred = (180 / np.pi) * DOA_pred                                     # Convert from radians to degrees
+        
         roots_angels_all = np.angle(roots)                                      # Calculate the phase component of the roots 
-        DOA_pred_all = np.arcsin((1/(2 * np.pi * self.dist * f)) * roots_angels_all)                              # Calculate the DOA our of the phase component
+        DOA_pred_all = np.arcsin((1/(2 * np.pi * self.dist)) * roots_angels_all)                              # Calculate the DOA our of the phase component
         DOA_pred_all = (180 / np.pi) * DOA_pred_all                                     # Convert from radians to Deegres
         return DOA_pred, roots, M, DOA_pred_all, roots_angels_all
 
@@ -73,11 +117,8 @@ class Model_Based_methods(object):
         Spectrum_equation = []
         for angle in self.angels:
             a = self.system_model.SV_Creation(theta= angle, f= f, Array_form = Array_form)
+            a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(np.conj(a).T @ Un @ np.conj(Un).T @ a)
         Spectrum_equation = np.array(Spectrum_equation, dtype=np.complex)
         Spectrum = 1 / Spectrum_equation
         return Spectrum, Spectrum_equation
-
-
-
-

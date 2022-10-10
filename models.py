@@ -158,11 +158,6 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
 
     def AntiRectifier(self, X):
         return torch.cat((self.ReLU(X), self.ReLU(-X)), 1)
-        # print(X.shape)
-        # meu = torch.mean(X)
-        # meu = torch.mean(X, 2).repeat(X.shape[2],1)
-        # norm_ava_X = (X - meu.T) / torch.linalg.norm(X - meu.T)
-        # return torch.cat((self.ReLU(norm_ava_X), self.ReLU(-norm_ava_X)),1)
     
     def sum_of_diags(self, Matrix):
         coeff =[]
@@ -187,10 +182,6 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
             Un = eigenvectors[:, M:]
-            # print(Un[0].shape)
-            # print(torch.angle(Un[0]))
-            # Un = Un * torch.exp(-1j * torch.angle(Un[0]))
-            # print(torch.angle(Un[0]))
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -200,27 +191,14 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
             DOA_all_list.append(DOA_pred_all)
             roots_to_return = roots
             
-            # print("roots before sorting", roots)
             roots = roots[sorted(range(roots.shape[0]), key = lambda k : abs(abs(roots[k]) - 1))]   # Take only roots which are outside unit circle
-            # print("roots after sorting", roots)
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred_test = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                 # Calculate the DOA our of the phase component
-            
-            # print("abs(roots)", abs(roots)-1)
-            # print("DOA_pred_test", DOA_pred_test * 180 / np.pi)
-            
             mask = (torch.abs(roots) - 1) < 0
+            
             roots = roots[mask][:M]
-            # indices = torch.nonzero(mask
-            # print("abs(roots)", abs(roots)-1)
-
-            
-            
-            # roots = [root for root in roots if (abs(root) - 1) < 0][:M]
-            # roots = roots[:2 * M:2]                                                                 # Take the M most closest to the unit circle roots
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                      # Calculate the DOA our of the phase component
-            # print("DOA Pred", DOA_pred * 180 / np.pi)
             DOA_list.append(DOA_pred)                                                               # Convert from radians to Deegres
         return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return
     
