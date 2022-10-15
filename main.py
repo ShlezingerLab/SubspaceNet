@@ -34,10 +34,10 @@ if __name__ == "__main__":
     ############################
     ##        Commands        ##
     ############################
-    Save_to_File = True
-    CreateData = True
-    Train_mode = True
-    Evaluate_mode = False
+    Save_to_File = False
+    CreateData = False
+    Train_mode = False
+    Evaluate_mode = True
     
     if(Save_to_File):
         file_path = Simulations_path + r"\\Results\\Scores\\" + dt_string_for_save + r".txt"
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     nNumberOfSampels = 100000
     Train_Test_Ratio = 0.05
     scenario = "NarrowBand"
-    mode = "non-coherent"
+    mode = "coherent"
     
     ############################
     ###   Create Data Sets   ###
@@ -190,7 +190,7 @@ if __name__ == "__main__":
         print("scenario = {}".format(scenario))
         print("mode = {}".format(mode))
         print("Observations = {}".format(T))
-        loading_path = saving_path + r"/model_tau=2_M=2_100Ksampels_SNR_10_T=201_10_2022_13_53"
+        loading_path = saving_path + r"/model_tau=2_M=2_100Ksampels_SNR_10_T=2"
         model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
         # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
         
@@ -200,4 +200,3 @@ if __name__ == "__main__":
             model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
         
         PlotSpectrum(model, DataSet_Rx_test, DataSet_x_test, Sys_Model)
-        
