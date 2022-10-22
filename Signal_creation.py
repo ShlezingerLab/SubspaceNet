@@ -32,8 +32,8 @@ class Sampels(object):
         self.SV_Creation = System_model.SV_Creation
         if DOA == None:
           # self.DOA = np.array(np.pi * (np.random.rand(self.M) - 0.5))         # generate aribitrary DOA angels
-        #   self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
-          self.DOA = (np.pi / 180) * np.array(create_closely_spaced_DOA(M = self.M, gap = 10)) # (~0.2 rad)
+          self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
+        #   self.DOA = (np.pi / 180) * np.array(create_closely_spaced_DOA(M = self.M, gap = 10)) # (~0.2 rad)
             # self.DOA = np.array(np.round((np.pi * ((np.random.rand(self.M) - 0.5))),decimals=2))
         else: 
           self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
@@ -110,7 +110,6 @@ class Sampels(object):
                 pass
         else:
             return 0
-
 
 if __name__ == "__main__":
     print(create_closely_spaced_DOA(M=2, gap = 6))

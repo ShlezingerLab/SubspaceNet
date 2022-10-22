@@ -111,6 +111,7 @@ def Run_Simulation(Model_Train_DataSet,
 
     ## Loss criterion
     criterion = PRMSELoss()                                     # Periodic rmse loss
+    # criterion = PMSELoss()                                     # Periodic mse loss
 
     ############################
     ###  Data Organization   ###
@@ -148,7 +149,7 @@ def Run_Simulation(Model_Train_DataSet,
                     checkpoint_path=r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\Weights" + '\ckpt-{}.pk')
     
     ## Save model Best weights
-    torch.save(model.state_dict(), saving_path + '\\' +  model_name + dt_string_for_save)
+    torch.save(model.state_dict(), saving_path + '\\model_' + dt_string_for_save)
     
     ############################
     ###    Evaluate Model    ###
@@ -321,6 +322,16 @@ def PRMSE(pred, DOA):
       prmse_list.append(prmse_val)
   return np.min(prmse_list)
 
+def PMSE(pred, DOA):
+  prmse_list = []
+  for p in list(permutations(pred, len(pred))):
+      p = np.array(p)
+      DOA = np.array(DOA)
+      error = (((p - DOA) * np.pi / 180) + np.pi / 2) % np.pi - np.pi / 2
+      prmse_val = (1 / len(p)) * (np.linalg.norm(error) ** 2)
+      prmse_list.append(prmse_val)
+  return np.min(prmse_list)
+
 def evaluate_model_based(DataSetModelBased, Sys_Model):
   RootMUSIC_list = []
   SPS_RootMUSIC_list = []
@@ -340,14 +351,16 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       while(DOA_pred_RootMUSIC.shape[0] < M):
         print("Cant estimate M sources - RootMUSIC")
         DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-      lossRootMUSIC = PRMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
+      # lossRootMUSIC = PRMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
+      lossRootMUSIC = PMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
       RootMUSIC_list.append(lossRootMUSIC)
 
       # if algorithm cant estimate M sources, randomize angels
       while(DOA_pred_SPSRootMUSIC.shape[0] < M):
         print("Cant estimate M sources - SPSRootMUSIC")
         DOA_pred_SPSRootMUSIC = np.insert(DOA_pred_SPSRootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-      lossSPSRootMUSIC = PRMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
+      # lossSPSRootMUSIC = PRMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
+      lossSPSRootMUSIC = PMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
       SPS_RootMUSIC_list.append(lossSPSRootMUSIC)
       
       ## MUSIC predictions
@@ -359,7 +372,8 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       while(predicted_DOA.shape[0] < M):
         print("Cant estimate M sources - MUSIC")
         predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-      lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+      # lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+      lossMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
       MUSIC_list.append(lossMUSIC)
 
       ## SPS MUSIC predictions
@@ -372,13 +386,15 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       while(predicted_DOA.shape[0] < M):
         print("Cant estimate M sources - SPS MUSIC")
         predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-      lossSPSMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+      # lossSPSMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+      lossSPSMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
       SPS_MUSIC_list.append(lossSPSMUSIC)
   return np.mean(RootMUSIC_list), np.mean(MUSIC_list), np.mean(SPS_RootMUSIC_list), np.mean(SPS_MUSIC_list)
 
 
 def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
-  criterion = PRMSELoss()
+  # criterion = PRMSELoss()
+  criterion = PMSELoss()
   Data_Set_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\DataSet"
   PLOT_MUSIC = True
   PLOT_ROOT_MUSIC = True
@@ -485,3 +501,4 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
             ax3.plot([0,angle * np.pi / 180],[0, r],marker='o')
 
     plt.show()
+  return RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, DeepRootTest_loss
