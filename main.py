@@ -37,6 +37,7 @@ if __name__ == "__main__":
     ############################
     SAVE_TO_FILE = False
     CREATE_DATA = False
+    LOAD_DATA = True
     TRAIN_MODE = False
     SAVE_MODEL = False
     EVALUATE_MODE = True
@@ -101,24 +102,22 @@ if __name__ == "__main__":
     ############################
     ###    Load Data Sets    ###
     ############################
-    
-    train_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, nNumberOfSampels, M, N, T, SNR)
-    test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T, SNR)
-    # train_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, nNumberOfSampels, M, N, T)
-    # test_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T)
+    if LOAD_DATA:
+        train_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, nNumberOfSampels, M, N, T, SNR)
+        test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T, SNR)
+        # train_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, nNumberOfSampels, M, N, T)
+        # test_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T)
 
-    DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + train_details_line)
-    DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
-    DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + test_details_line)
-    Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + test_details_line)
+        DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + train_details_line)
+        DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
+        DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + test_details_line)
+        Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + test_details_line)
 
-    ############################
-    ##   Training parameters  ##
-    ############################
 
     if TRAIN_MODE:
+
         ############################
-        ###    Run Simulations   ###
+        ##   Training parameters  ##
         ############################
         optimal_gamma_val = 1
         optimal_bs = 2048
@@ -134,6 +133,10 @@ if __name__ == "__main__":
         validation_curves = []
 
         fig = plt.figure(figsize=(8, 6), dpi=80)
+        
+        ############################
+        ###    Run Simulations   ###
+        ############################
         
         print("\n--- New Simulation ---\n")
         print("Description: Simulation of closely spaced sources with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
@@ -202,7 +205,6 @@ if __name__ == "__main__":
         DeepRootTest_loss = []
         for SNR in [-2]:
             test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T, SNR)
-            # train_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, nNumberOfSampels, M, N, T)
             # test_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T)
 
             DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
@@ -215,7 +217,7 @@ if __name__ == "__main__":
             print("Observations = {}".format(T))
             
             # loading_path = saving_path + r"\Final_models" + r"\model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-            loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, -1, T)
+            loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
             model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
             # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
             
