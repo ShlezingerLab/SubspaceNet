@@ -56,8 +56,8 @@ if __name__ == "__main__":
     tau = 8
     N = 8
     M = 2
-    T = 200
-    SNR = -2
+    T = 20
+    SNR = 10
     nNumberOfSampels = 100000
     Train_Test_Ratio = 0.05
     scenario = "NarrowBand"
@@ -168,8 +168,8 @@ if __name__ == "__main__":
                         model_name= "model_tau=2_M=2_100Samples_SNR_{}_T=2_just_a_test".format(SNR),
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
-                        load_flag = True,
-                        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, -4, T),
+                        load_flag = False,
+                        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
                         Plot = False,
                         DataSetModelBased = DataSet_x_test)
         
@@ -210,9 +210,9 @@ if __name__ == "__main__":
         test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T, SNR)
         # test_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(Train_Test_Ratio * nNumberOfSampels), M, N, T)
 
-        DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
-        DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + test_details_line)
-        Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + test_details_line)
+        DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx" + test_details_line)
+        DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"  + test_details_line)
+        Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"  + test_details_line)
         
         print("SNR = {}".format(SNR))
         print("scenario = {}".format(scenario))

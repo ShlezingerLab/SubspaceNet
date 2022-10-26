@@ -200,7 +200,17 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                      # Calculate the DOA our of the phase component
             DOA_list.append(DOA_pred)                                                               # Convert from radians to Deegres
-        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return
+        
+            eigenvalues = torch.real(eigenvalues) / torch.max(torch.real(eigenvalues))
+            # eigenvalues = torch.real(eigenvalues)
+            norm_eig = torch.flip(torch.sort(eigenvalues)[0], (0,))
+            # eig_diffs.append((norm_eig[0] - norm_eig)[1])
+            minimal_signal_eig = norm_eig[M-1] - norm_eig[-1]
+            maximal_noise_eig = norm_eig[M] - norm_eig[-1]
+            # print(eigenvalues)
+            # print(norm_eig[M-1] - norm_eig[-1], norm_eig[M] - norm_eig[-1])
+            
+        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return, minimal_signal_eig, maximal_noise_eig
     
     def Gramian_matrix(self, Kx, eps):
         '''
@@ -264,8 +274,8 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
 
         ## Rest of Root MUSIC algorithm
         # print(Rz)
-        DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
-        return DOA, DOA_all, roots
+        DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
+        return DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig
 
 
 
@@ -423,6 +433,6 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         Rz = self.Gramian_matrix(Kx_tag, eps= 1)                                           # Output shape [Batch size, N, N]
 
         ## Rest of Root MUSIC algorithm
-        DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
-        return DOA, DOA_all, roots
+        DOA, DOA_all, roots, eig_diffs = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
+        return DOA, DOA_all, roots, eig_diffs
     

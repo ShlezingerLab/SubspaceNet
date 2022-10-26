@@ -57,7 +57,7 @@ class Model_Based_methods(object):
         DOA_pred.sort(key = lambda x: Spectrum[x], reverse = True)
         return DOA_pred, Spectrum, M                                                    # return estimated DOA
 
-    def Classic_Root_MUSIC(self, X, NUM_OF_SOURCES, SPS=False, sub_array_size=0):
+    def Classic_Root_MUSIC(self, X, NUM_OF_SOURCES=True, SPS=False, sub_array_size=0):
         '''
         Implementation of the model-based Root-MUSIC algorithm in Narrow-band scenario.
         
@@ -77,8 +77,11 @@ class Model_Based_methods(object):
         if NUM_OF_SOURCES:                                                              # NUM_OF_SOURCES = TRUE : number of sources is given
             M = self.M
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues        
-            # clustring technique
-            pass
+            # clustering technique
+            threshold = 0.2
+            norm_eigenvalues = eigenvalues / np.max(eigenvalues)
+            # simplest clustering method: with threshold
+            M = self.N - norm_eigenvalues[np.where(norm_eigenvalues < threshold)].shape(0)
         
         if SPS:
             number_of_sensors = self.N
@@ -122,3 +125,9 @@ class Model_Based_methods(object):
         Spectrum_equation = np.array(Spectrum_equation, dtype=np.complex)
         Spectrum = 1 / Spectrum_equation
         return Spectrum, Spectrum_equation
+    
+    def clustering(eigenvalues):
+        threshold = 0.2
+        norm_eigenvalues = eigenvalues / np.max(eigenvalues)
+        # simplest clustering method: with threshold
+        return norm_eigenvalues[np.where(norm_eigenvalues < threshold)]
