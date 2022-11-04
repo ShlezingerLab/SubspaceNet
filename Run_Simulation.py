@@ -341,7 +341,7 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
   SPS_RootMUSIC_list = []
   MUSIC_list = []
   SPS_MUSIC_list = []
-  model_based_platform = Model_Based_methods(Sys_Model)
+  model_based_platform = ModelBasedMethods(Sys_Model)
   for i,data in enumerate(DataSetModelBased):
       X, Y = data
       X_modelbased = X[0]
@@ -415,7 +415,7 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
                           shuffle=False,
                           drop_last=False)
   
-  model_based_platform = Model_Based_methods(Sys_Model)
+  model_based_platform = ModelBasedMethods(Sys_Model)
 
   RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
   DeepRootTest_loss, minimal_signal_eig, maximal_noise_eig = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      

@@ -11,7 +11,7 @@ from EvaluationMesures import *
 from methods import *
 from models import *
 from Run_Simulation import *
-from useful_func import * 
+from utils import * 
 
 warnings.simplefilter("ignore")
 plt.close('all')

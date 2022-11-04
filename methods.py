@@ -2,10 +2,10 @@ from System_Model import *
 import numpy as np
 import scipy as sc
 import scipy.signal
-from useful_func import *
+from utils import *
 import matplotlib.pyplot as plt
 
-class Model_Based_methods(object):
+class ModelBasedMethods(object):
     def __init__(self, System_model):
         self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for represantation of the MUSIC spectrum
         self.system_model = System_model
@@ -131,3 +131,5 @@ class Model_Based_methods(object):
         norm_eigenvalues = eigenvalues / np.max(eigenvalues)
         # simplest clustering method: with threshold
         return norm_eigenvalues[np.where(norm_eigenvalues < threshold)]
+    
+    #TODO: Add model-based broadband methods
