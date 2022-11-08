@@ -7,9 +7,13 @@ import matplotlib.pyplot as plt
 
 class ModelBasedMethods(object):
     def __init__(self, System_model):
+        """_summary_
+
+        Args:
+            System_model (_type_): _description_
+        """        
         self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for represantation of the MUSIC spectrum
         self.system_model = System_model
-        self.dist = System_model.dist
         self.M = System_model.M
         self.N = System_model.N
         self.dist = System_model.dist
@@ -127,6 +131,14 @@ class ModelBasedMethods(object):
         return Spectrum, Spectrum_equation
     
     def clustering(eigenvalues):
+        """_summary_
+
+        Args:
+            eigenvalues (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """        
         threshold = 0.2
         norm_eigenvalues = eigenvalues / np.max(eigenvalues)
         # simplest clustering method: with threshold

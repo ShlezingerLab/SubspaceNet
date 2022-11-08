@@ -277,37 +277,25 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
         DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
         return DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig
 
-
-
-class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
+class Deep_Root_Net_Broadband(nn.Module):
     def __init__(self, tau, ActivationVal):
+        super(Deep_Root_Net_Broadband, self).__init__()
         self.tau = tau
-        super(Deep_Root_Net_AntiRectifier_Extend, self).__init__()
         self.conv1 = nn.Conv2d(self.tau, 16, kernel_size = 2)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size = 2)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size = 2)
-        self.conv4 = nn.Conv2d(64, 128, kernel_size = 2)
-        self.conv5 = nn.Conv2d(128, 256, kernel_size = 2)
-        # self.conv5 = nn.Conv2d(256, 256, kernel_size = 2)
-
-        # self.deconv0 = nn.ConvTranspose2d(512, 128, kernel_size= 2)
-        self.deconv1 = nn.ConvTranspose2d(256, 128, kernel_size= 2)
-        self.deconv2 = nn.ConvTranspose2d(128, 64, kernel_size= 2)
-        self.deconv3 = nn.ConvTranspose2d(64, 32, kernel_size= 2)
-        self.deconv4 = nn.ConvTranspose2d(32, 16, kernel_size= 2)
-        self.deconv5 = nn.ConvTranspose2d(16, 1, kernel_size= 2)
+        self.conv2 = nn.Conv2d(32, 32, kernel_size = 2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size = 2)
+        # self.conv4 = nn.Conv2d(64, 128, kernel_size = 2)
+        self.deconv2 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
+        self.deconv3 = nn.ConvTranspose2d(64, 16, kernel_size= 2)
+        self.deconv4 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
         self.ReLU = nn.ReLU()
-        # self.LeakyReLU = nn.LeakyReLU(ActivationVal)
-        self.Tanh = nn.Tanh()
+        # self.SeLU = nn.SELU()
+        self.LeakyReLU = nn.LeakyReLU(ActivationVal)
+        # self.Tanh = nn.Tanh()
         self.DropOut = nn.Dropout(0.2)
 
     def AntiRectifier(self, X):
         return torch.cat((self.ReLU(X), self.ReLU(-X)), 1)
-        # print(X.shape)
-        # meu = torch.mean(X)
-        # meu = torch.mean(X, 2).repeat(X.shape[2],1)
-        # norm_ava_X = (X - meu.T) / torch.linalg.norm(X - meu.T)
-        # return torch.cat((self.ReLU(norm_ava_X), self.ReLU(-norm_ava_X)),1)
     
     def sum_of_diags(self, Matrix):
         coeff =[]
@@ -323,7 +311,7 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         return roots
 
     def Root_MUSIC(self, Rz, M):
-        dist = 0.5 
+        dist = 0.5
         f = 1
         DOA_list = []
         DOA_all_list = []
@@ -341,29 +329,26 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
             DOA_all_list.append(DOA_pred_all)
             roots_to_return = roots
             
-            # print("roots before sorting", roots)
             roots = roots[sorted(range(roots.shape[0]), key = lambda k : abs(abs(roots[k]) - 1))]   # Take only roots which are outside unit circle
-            # print("roots after sorting", roots)
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred_test = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                 # Calculate the DOA our of the phase component
-            
-            # print("abs(roots)", abs(roots)-1)
-            # print("DOA_pred_test", DOA_pred_test * 180 / np.pi)
-            
             mask = (torch.abs(roots) - 1) < 0
+            
             roots = roots[mask][:M]
-            # indices = torch.nonzero(mask
-            # print("abs(roots)", abs(roots)-1)
-
-            
-            
-            # roots = [root for root in roots if (abs(root) - 1) < 0][:M]
-            # roots = roots[:2 * M:2]                                                                 # Take the M most closest to the unit circle roots
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                      # Calculate the DOA our of the phase component
-            # print("DOA Pred", DOA_pred * 180 / np.pi)
             DOA_list.append(DOA_pred)                                                               # Convert from radians to Deegres
-        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return
+        
+            eigenvalues = torch.real(eigenvalues) / torch.max(torch.real(eigenvalues))
+            # eigenvalues = torch.real(eigenvalues)
+            norm_eig = torch.flip(torch.sort(eigenvalues)[0], (0,))
+            # eig_diffs.append((norm_eig[0] - norm_eig)[1])
+            minimal_signal_eig = norm_eig[M-1] - norm_eig[-1]
+            maximal_noise_eig = norm_eig[M] - norm_eig[-1]
+            # print(eigenvalues)
+            # print(norm_eig[M-1] - norm_eig[-1], norm_eig[M] - norm_eig[-1])
+            
+        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return, minimal_signal_eig, maximal_noise_eig
     
     def Gramian_matrix(self, Kx, eps):
         '''
@@ -390,37 +375,30 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         ## Input shape of signal X(t): [Batch size, N, T]
         self.N = New_Rx_tau.shape[-1]
         self.BATCH_SIZE = New_Rx_tau.shape[0]
+
+        # New_Rx_tau = self.Create_Autocorr_tensor(X, self.tau).to(torch.float)         # Output shape [Batch size, tau, 2N, N]
         
         ## AutoEncoder Archtecture
         x = self.conv1(New_Rx_tau)
-        x = self.Tanh(x)
-        
+        x = self.AntiRectifier(x)
+        # print(x.shape)
         x = self.conv2(x)
-        x = self.Tanh(x)
+        x = self.AntiRectifier(x)
+        # print(x.shape)
 
-        x = self.conv3(x)
-        x = self.Tanh(x)
-
-        x = self.conv4(x)
-        x = self.Tanh(x)
-
-        x = self.conv5(x)
-        x = self.Tanh(x)
-
-        x = self.deconv1(x)
-        x = self.Tanh(x)
+        x = self.AntiRectifier(self.conv3(x))
+        # print(x.shape)
 
         x = self.deconv2(x)
-        x = self.Tanh(x)
+        x = self.AntiRectifier(x)
+        # print(x.shape)
 
-        x = self.deconv3(x)
-        x = self.Tanh(x)
-
-        x = self.deconv4(x)
-        x = self.Tanh(x)
+        x = self.AntiRectifier(self.deconv3(x))
+        # print(x.shape)
 
         x = self.DropOut(x)
-        Rx = self.deconv5(x)
+        Rx = self.deconv4(x)
+        # print(Rx.shape)
 
         Rx_View = Rx.view(Rx.size(0),Rx.size(2),Rx.size(3))                           # Output shape [Batch size, 2N, N]
 
@@ -433,6 +411,10 @@ class Deep_Root_Net_AntiRectifier_Extend(nn.Module):
         Rz = self.Gramian_matrix(Kx_tag, eps= 1)                                           # Output shape [Batch size, N, N]
 
         ## Rest of Root MUSIC algorithm
-        DOA, DOA_all, roots, eig_diffs = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
-        return DOA, DOA_all, roots, eig_diffs
+        # print(Rz)
+        DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
+        return DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig
+
+    
+    
     

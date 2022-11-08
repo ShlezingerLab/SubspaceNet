@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import warnings
 
 from System_Model import *
-from Signal_creation import *
+from signal_creation import *
 from DataLoaderCreation import *
 from EvaluationMesures import *
 from methods import *
@@ -18,13 +18,12 @@ plt.close('all')
 os.system('cls||clear')
 
 if __name__ == "__main__":
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
-    Main_path = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code"
-    Main_Data_path = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code\\DataSet"
-    Data_Scenario_path = r"\\LowSNR"
-    # saving_path = r"G:\My Drive\Thesis\DeepRootMUSIC\Code\Weights\Models"
-    saving_path = r"G:\My Drive\Thesis\DeepRootMUSIC\Code\Weights"
-    Simulations_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\\Code\\Simulations"
+    device              = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
+    Main_path           = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code"
+    Main_Data_path      = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code\\DataSet"
+    Data_Scenario_path  = r"\\LowSNR"
+    saving_path         = r"G:\My Drive\Thesis\DeepRootMUSIC\Code\Weights"
+    Simulations_path    = r"G:\My Drive\Thesis\\DeepRootMUSIC\\Code\\Simulations"
 
     Set_Overall_Seed()
     now = datetime.now()
@@ -35,8 +34,8 @@ if __name__ == "__main__":
     ##        Commands        ##
     ############################
     SAVE_TO_FILE = False
-    CREATE_DATA = False
-    LOAD_DATA = True
+    CREATE_DATA = True
+    LOAD_DATA =  False
     TRAIN_MODE = False
     SAVE_MODEL = False
     EVALUATE_MODE = True
@@ -58,10 +57,11 @@ if __name__ == "__main__":
     M = 2
     T = 20
     SNR = 10
-    nNumberOfSampels = 100000
-    Train_Test_Ratio = 0.05
-    scenario = "NarrowBand"
-    mode = "coherent"
+    nNumberOfSampels = 100
+    Train_Test_Ratio = 0.1
+    # scenario = "Broadband_simple"
+    scenario = "Broadband_simple"
+    mode = "non-coherent"
     
     
     ############################
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     if CREATE_DATA:
         Set_Overall_Seed()
-        Create_Training_Data = False
+        Create_Training_Data = True
         Create_Testing_Data = True
         print("Creating Data...")
         if Create_Training_Data:
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                                     N= N, M= M , T= T,
                                     Sampels_size = nNumberOfSampels,
                                     tau = tau,
-                                    Save = False,
+                                    Save = True,
                                     DataSet_path = Main_Data_path + Data_Scenario_path + r"\\TrainingData",
                                     True_DOA = None,
                                     SNR = SNR)
@@ -122,9 +122,9 @@ if __name__ == "__main__":
         # Training parameters
         optimal_gamma_val = 1
         optimal_bs = 2048
-        optimal_lr = 0.00001
+        optimal_lr = 0.001
         optimal_step = 80
-        epochs = 1
+        epochs = 80
 
         Test_losses = []
         train_loss_lists = []
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         
         # Save model weights
         if SAVE_MODEL:
-            torch.save(model.state_dict(), saving_path + r"/Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}_MSE".format(M, mode, tau, SNR, T))
+            torch.save(model.state_dict(), saving_path + r"/Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T))
         
         train_loss_lists.append(loss_train_list)
         validation_loss_lists.append(loss_valid_list)
@@ -223,9 +223,10 @@ if __name__ == "__main__":
         ############################
         ###    Load Data Set     ###
         ############################
-        # loading_path = saving_path + r"\Final_models" + r"\model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-        model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
+        loading_path = saving_path + r"\Final_models" + r"\model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+        # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
+        model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=0.5)  
         # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
         
         # Load it to the specified device, either gpu or cpu

@@ -16,7 +16,7 @@ from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 
 from DataLoaderCreation import *
-from Signal_creation import *
+from signal_creation import *
 from methods import *
 from models import *
 from EvaluationMesures import *
@@ -84,7 +84,8 @@ def Run_Simulation(Model_Train_DataSet,
 
     # Create a model from `Deep_Root_Net`
     # model = Deep_Root_Net(tau=tau, ActivationVal=ActivationVal)                              
-    model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=ActivationVal)                              
+    # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=ActivationVal)                              
+    model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=ActivationVal)                              
     # model = Deep_Root_Net_AntiRectifier_Extend(tau=tau, ActivationVal=ActivationVal)                              
     
     # Load it to the specified device, either gpu or cpu
@@ -111,7 +112,6 @@ def Run_Simulation(Model_Train_DataSet,
 
     ## Loss criterion
     criterion = PRMSELoss()                                     # Periodic rmse loss
-    # criterion = PMSELoss()                                     # Periodic mse loss
 
     ############################
     ###  Data Organization   ###
@@ -307,13 +307,11 @@ def evaluate_model(model, Data, criterion):
             Rx = Rx.to(device)
             DOA = DOA.to(device)
             model_parameters = model(Rx, DOA.shape[1])                            # Compute prediction of DOA's
-            maximal_noise_eig.append(model_parameters[-1])
-            minimal_signal_eig.append(model_parameters[-2])
             DOA_predictions = model_parameters[0]
             eval_loss = criterion(DOA_predictions, DOA)                                     # Compute evaluation predictions loss
             loss += eval_loss.item()                                          # add the batch evaluation loss to epoch loss  
         loss = loss / test_length
-    return loss, torch.tensor(minimal_signal_eig),  torch.tensor(maximal_noise_eig)
+    return loss
 
 
 def PRMSE(pred, DOA):
@@ -398,7 +396,6 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
 
 def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
   criterion = PRMSELoss()
-  # criterion = PMSELoss()
   Data_Set_path = r"G:\My Drive\Thesis\\DeepRootMUSIC\Code\\DataSet"
   PLOT_MUSIC = True
   PLOT_ROOT_MUSIC = True
@@ -417,12 +414,12 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
   
   model_based_platform = ModelBasedMethods(Sys_Model)
 
-  RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
-  DeepRootTest_loss, minimal_signal_eig, maximal_noise_eig = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      
-  print("minimal_signal_eig mean", torch.mean(minimal_signal_eig))
-  print("minimal_signal_eig std", torch.std(minimal_signal_eig))
-  print("maximal_noise_eig mean", torch.mean(maximal_noise_eig))
-  print("maximal_noise_eig std", torch.std(maximal_noise_eig))
+  # RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  DeepRootTest_loss = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      
+  # print("minimal_signal_eig mean", torch.mean(minimal_signal_eig))
+  # print("minimal_signal_eig std", torch.std(minimal_signal_eig))
+  # print("maximal_noise_eig mean", torch.mean(maximal_noise_eig))
+  # print("maximal_noise_eig std", torch.std(maximal_noise_eig))
   print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))
   print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
   print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
