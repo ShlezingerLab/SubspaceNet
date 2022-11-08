@@ -34,7 +34,7 @@ if __name__ == "__main__":
     ##        Commands        ##
     ############################
     SAVE_TO_FILE = False
-    CREATE_DATA = True
+    CREATE_DATA = False
     LOAD_DATA =  False
     TRAIN_MODE = False
     SAVE_MODEL = False
