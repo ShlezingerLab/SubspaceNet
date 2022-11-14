@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from System_Model import System_model
-from signal_creation import Samples
+from Signal_creation import Samples
 from tqdm import tqdm
 import random
 import h5py

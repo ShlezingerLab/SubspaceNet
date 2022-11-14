@@ -16,7 +16,7 @@ from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 
 from DataLoaderCreation import *
-from signal_creation import *
+from Signal_creation import *
 from methods import *
 from models import *
 from EvaluationMesures import *
@@ -298,8 +298,8 @@ def evaluate_model(model, Data, criterion):
     loss = 0.0
     model.eval()
     test_length = 0
-    minimal_signal_eig = []
-    maximal_noise_eig = []
+    # minimal_signal_eig = []
+    # maximal_noise_eig = []
     with torch.no_grad():                                                                   # Gradients Calculation isnt required for evaluation
         for i, data in enumerate(Data):
             Rx, DOA = data
@@ -351,7 +351,7 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       
       # if algorithm cant estimate M sources, randomize angels
       while(DOA_pred_RootMUSIC.shape[0] < M):
-        print("Cant estimate M sources - RootMUSIC")
+        # print("Cant estimate M sources - RootMUSIC")
         DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
       lossRootMUSIC = PRMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
       # lossRootMUSIC = PMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
@@ -359,7 +359,7 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
 
       # if algorithm cant estimate M sources, randomize angels
       while(DOA_pred_SPSRootMUSIC.shape[0] < M):
-        print("Cant estimate M sources - SPSRootMUSIC")
+        # print("Cant estimate M sources - SPSRootMUSIC")
         DOA_pred_SPSRootMUSIC = np.insert(DOA_pred_SPSRootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
       lossSPSRootMUSIC = PRMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
       # lossSPSRootMUSIC = PMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
@@ -372,7 +372,7 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       
       # if algorithm cant estimate M sources, randomize angels
       while(predicted_DOA.shape[0] < M):
-        print("Cant estimate M sources - MUSIC")
+        # print("Cant estimate M sources - MUSIC")
         predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
       lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
       # lossMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
@@ -386,7 +386,7 @@ def evaluate_model_based(DataSetModelBased, Sys_Model):
       
       # if algorithm cant estimate M sources, randomize angels
       while(predicted_DOA.shape[0] < M):
-        print("Cant estimate M sources - SPS MUSIC")
+        # print("Cant estimate M sources - SPS MUSIC")
         predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
       lossSPSMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
       # lossSPSMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
@@ -414,7 +414,7 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
   
   model_based_platform = ModelBasedMethods(Sys_Model)
 
-  # RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
   DeepRootTest_loss = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      
   # print("minimal_signal_eig mean", torch.mean(minimal_signal_eig))
   # print("minimal_signal_eig std", torch.std(minimal_signal_eig))

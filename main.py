@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import warnings
 
 from System_Model import *
-from signal_creation import *
+from Signal_creation import *
 from DataLoaderCreation import *
 from EvaluationMesures import *
 from methods import *
@@ -33,10 +33,10 @@ if __name__ == "__main__":
     ############################
     ##        Commands        ##
     ############################
-    SAVE_TO_FILE = False
-    CREATE_DATA = False
-    LOAD_DATA =  False
-    TRAIN_MODE = False
+    SAVE_TO_FILE = True
+    CREATE_DATA = True
+    LOAD_DATA = True
+    TRAIN_MODE = True
     SAVE_MODEL = False
     EVALUATE_MODE = True
     
@@ -55,14 +55,14 @@ if __name__ == "__main__":
     tau = 8
     N = 8
     M = 2
-    T = 20
-    SNR = 10
-    nNumberOfSampels = 100
-    Train_Test_Ratio = 0.1
+    T = 200
+    SNR = 100
+    nNumberOfSampels = 50000
+    Train_Test_Ratio = 0.05
     # scenario = "Broadband_simple"
-    scenario = "Broadband_simple"
+    scenario = "Broadband_OFDM"
+    # scenario = "Broadband_simple"
     mode = "non-coherent"
-    
     
     ############################
     ###   Create Data Sets   ###  
@@ -169,7 +169,8 @@ if __name__ == "__main__":
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
                         load_flag = False,
-                        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
+                        loading_path = saving_path + r"\Final_models" + r"/model_M=2_coherent_Tau=8_SNR=10_T=20",
+                        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
                         Plot = False,
                         DataSetModelBased = DataSet_x_test)
         

@@ -65,13 +65,21 @@ class Samples(System_model):
             freq_axis_negative = np.linspace(-(self.f_sampling // 2) + 1, 0,  self.f_sampling // 2 - 1 , endpoint=False)
             freq_axis = np.concatenate([freq_axis_positive, freq_axis_negative])
             
-            for idx, f in enumerate(freq_axis):
+            # TODO: check if the data creation became much slower
+            
+            for idx in range(self.f_sampling):
+                
+                # mapping from index i to frequency f
+                if idx > int(self.f_sampling) // 2: f = - int(self.f_sampling) + idx
+                else: f = idx
+                
                 A = np.array([self.SV_Creation(theta, f) for theta in self.DOA]).T
                 samples.append((A @ signal[:, idx]) + noise[:, idx])
                 SV.append(A)
             samples = np.array(samples)
             SV = np.array(SV)
-            samples_time_domain = np.fft.ifft(samples.T, axis=1)
+            # samples_time_domain = np.fft.ifft(samples.T, axis=1, n=self.T)[:, :self.T]
+            samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
             return samples_time_domain, signal, SV, noise
 
     def noise_creation(self, N_mean, N_Var):
@@ -120,21 +128,30 @@ class Samples(System_model):
                 carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
                 carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers[0] * self.time_axis)
                 return np.tile(np.fft.fft(carriers_signals), (self.M, 1))
+
+        ## Broadband signal creation
+        if self.scenario.startswith("Broadband_OFDM"):
+            num_sub_carriers = 1000   # number of subcarriers per signal
+            # create M non-coherent signals
+            signal = np.zeros((self.M, len(self.time_axis))) + 1j * np.zeros((self.M, len(self.time_axis)))
+            if mode == "non-coherent":
+                for i in range(self.M):
+                    for j in range(num_sub_carriers):
+                        sig_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
+                        signal[i] += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
+                    signal[i] *=  (1/num_sub_carriers)          
+                return np.fft.fft(signal)
+            
+            # TODO: ASK NIR: maybe should place different carriers even though the mode is coherent ?  
+            # Coherent signals: same amplitude and phase for all signals 
+            signal = np.zeros((1, len(self.time_axis))) + 1j * np.zeros((1, len(self.time_axis)))
+            if mode == "coherent":
+                for j in range(num_sub_carriers):
+                    sig_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
+                    signal += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
+                signal *=  (1/num_sub_carriers)
+                return np.tile(np.fft.fft(carriers_signals), (self.M, 1))
                 
-        # if self.scenario.startswith("Broadband_simple"):
-                
-                # sig = []
-                # for fc in carriers:
-                #                     Amp_f_c = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
-                #     sig_fc = Amp_f_c * np.exp(2 * np.pi * 1j * fc * self.time_axis)
-                #     sig.append(sig_fc)
-                # for Broadband scenario Noise represented in the frequency domain
-                # return np.fft.fft(carriers_signals)
-            ###### should be updated ######
-            if mode == "OFDM": 
-                pass
-            if mode == "mod-OFDM": 
-                pass
         else:
             return 0
 
