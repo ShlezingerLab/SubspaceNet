@@ -25,7 +25,7 @@ def CreateDataSetCombined(scenario, mode, N, M, T, Sampels_size, tau, Save=False
         
         # Samples Creation - Model Initialization                           
         
-        Sys_Model = Samples(scenario= scenario, N= N, M= M, DOA= True_DOA, observations=T, freq_values=[0, 1000])                 
+        Sys_Model = Samples(scenario= scenario, N= N, M= M, DOA= True_DOA, observations=T, freq_values=[0, 100])                 
         X = torch.tensor(Sys_Model.samples_creation(mode = mode, N_mean= 0,
                                                     N_Var= 1, S_mean= 0, S_Var= 1,
                                                     SNR= SNR)[0], dtype=torch.complex64)                   # Samples Creation 

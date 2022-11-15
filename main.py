@@ -38,7 +38,7 @@ if __name__ == "__main__":
     LOAD_DATA = True
     TRAIN_MODE = True
     SAVE_MODEL = False
-    EVALUATE_MODE = True
+    EVALUATE_MODE = False
     
     if(SAVE_TO_FILE):
         file_path = Simulations_path + r"\\Results\\Scores\\" + dt_string_for_save + r".txt"
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     N = 8
     M = 2
     T = 200
-    SNR = 100
+    SNR = 10
     nNumberOfSampels = 50000
     Train_Test_Ratio = 0.05
     # scenario = "Broadband_simple"

@@ -78,8 +78,8 @@ class Samples(System_model):
                 SV.append(A)
             samples = np.array(samples)
             SV = np.array(SV)
-            # samples_time_domain = np.fft.ifft(samples.T, axis=1, n=self.T)[:, :self.T]
-            samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
+            samples_time_domain = np.fft.ifft(samples.T, axis=1, n=self.T)[:, :self.T]
+            # samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
             return samples_time_domain, signal, SV, noise
 
     def noise_creation(self, N_mean, N_Var):
@@ -131,7 +131,7 @@ class Samples(System_model):
 
         ## Broadband signal creation
         if self.scenario.startswith("Broadband_OFDM"):
-            num_sub_carriers = 1000   # number of subcarriers per signal
+            num_sub_carriers = self.max_freq   # number of subcarriers per signal
             # create M non-coherent signals
             signal = np.zeros((self.M, len(self.time_axis))) + 1j * np.zeros((self.M, len(self.time_axis)))
             if mode == "non-coherent":
