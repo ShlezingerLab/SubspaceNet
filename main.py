@@ -35,7 +35,7 @@ if __name__ == "__main__":
     ############################
     SAVE_TO_FILE = True
     CREATE_DATA = True
-    LOAD_DATA = True
+    LOAD_DATA = False
     TRAIN_MODE = True
     SAVE_MODEL = False
     EVALUATE_MODE = True
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     tau = 8
     N = 8
     M = 2
-    T = 200
+    T = 50
     SNR = 10
     nNumberOfSampels = 60000
     Train_Test_Ratio = 0.05
@@ -168,8 +168,8 @@ if __name__ == "__main__":
                         model_name= "model_tau=2_M=2_100Samples_SNR_{}_T=2_just_a_test".format(SNR),
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
-                        load_flag = False,
-                        loading_path = saving_path + r"\Final_models" + r"/model_17_11_2022_20_35",
+                        load_flag = True,
+                        loading_path = saving_path + r"\Final_models" + r"/model_19_11_2022_04_25",
                         # saving_path + r"\Final_models" + r"\model_17_11_2022_20_35",
                         # loading_path = saving_path + r"\Final_models" + r"/model_M=2_coherent_Tau=8_SNR=10_T=20",
                         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
@@ -226,7 +226,7 @@ if __name__ == "__main__":
         ############################
         ###    Load Data Set     ###
         ############################
-        # loading_path = saving_path + r"\Final_models" + r"\model_16_11_2022_08_39" 
+        # loading_path = saving_path + r"\Final_models" + r"\model_19_11_2022_04_25" 
         # loading_path = saving_path + r"\Final_models" + r"\model_17_11_2022_20_35" 
         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
         # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  

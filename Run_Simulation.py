@@ -209,7 +209,7 @@ def train_model(model, Train_data, Valid_data,
             ## Compute training loss
             train_loss = criterion(DOA_predictions, DOA)
 
-            ## Backpropogation stage
+            ## Backpropagation stage
             try:                         
               train_loss.backward()
             except RuntimeError:
