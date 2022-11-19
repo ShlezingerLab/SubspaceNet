@@ -18,6 +18,31 @@ class ModelBasedMethods(object):
         self.N = System_model.N
         self.dist = System_model.dist
 
+    def broadband_MUSIC(self, X, NUM_OF_SOURCES=True, number_of_bins=50):
+        number_of_bins=int(self.system_model.max_freq / 10)
+        if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
+            M = self.M                                                
+        else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
+            # clustring technique                                   
+            pass
+        X = np.fft.fft(X, axis=1, n=self.system_model.f_sampling)
+        num_of_samples = len(self.angels)
+        spectrum = np.zeros((number_of_bins, num_of_samples))
+        
+        for i in range(number_of_bins):
+            ind = int(self.system_model.min_freq) + i * len(self.system_model.f_rng) // number_of_bins
+            R_x = np.cov(X[:, ind:ind + len(self.system_model.f_rng) // number_of_bins])
+            eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
+            Un = eigenvectors[:, M:]  
+            spectrum[i], _= self.spectrum_calculation(Un, f=ind + len(self.system_model.f_rng) // number_of_bins - 1)
+        
+        # average spectra to one spectrum
+        spectrum = np.sum(spectrum, axis=0)
+        DOA_pred, _ = scipy.signal.find_peaks(spectrum)
+        DOA_pred = list(DOA_pred)
+        DOA_pred.sort(key = lambda x: spectrum[x], reverse = True)
+        return DOA_pred, spectrum, M     
+        
     def Classic_MUSIC(self, X, NUM_OF_SOURCES, SPS=False, sub_array_size=0):
         '''
         Implementation of the model-based MUSIC algorithm in Narrow-band scenario.

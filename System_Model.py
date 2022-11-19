@@ -21,8 +21,8 @@ class System_model(object):
             self.time_axis = np.linspace(0, 1, self.f_sampling, endpoint = False)                      # Define time axis
             
             ## Array initialization ##
-            # self.dist = 1 / (2 * self.max_freq)                     # distance between array elements
-            self.dist = 1 / (self.max_freq - self.min_freq)                     # distance between array elements
+            self.dist = 1 / (2 * self.max_freq)                     # distance between array elements
+            # self.dist = 1 / (self.max_freq - self.min_freq)           # distance between array elements
         
         elif self.scenario.startswith("NarrowBand"):
             ## frequencies initialization ##

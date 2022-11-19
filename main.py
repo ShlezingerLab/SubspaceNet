@@ -38,7 +38,7 @@ if __name__ == "__main__":
     LOAD_DATA = True
     TRAIN_MODE = True
     SAVE_MODEL = False
-    EVALUATE_MODE = False
+    EVALUATE_MODE = True
     
     if(SAVE_TO_FILE):
         file_path = Simulations_path + r"\\Results\\Scores\\" + dt_string_for_save + r".txt"
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     M = 2
     T = 200
     SNR = 10
-    nNumberOfSampels = 50000
+    nNumberOfSampels = 60000
     Train_Test_Ratio = 0.05
     # scenario = "Broadband_simple"
     scenario = "Broadband_OFDM"
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         ############################
  
         print("\n--- New Simulation ---\n")
-        print("Description: Simulation of closely spaced sources with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
+        print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
         print("Simulation parameters:")
         print("Learning Rate = {}".format(optimal_lr))
         print("Batch Size = {}".format(optimal_bs))
@@ -169,7 +169,9 @@ if __name__ == "__main__":
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
                         load_flag = False,
-                        loading_path = saving_path + r"\Final_models" + r"/model_M=2_coherent_Tau=8_SNR=10_T=20",
+                        loading_path = saving_path + r"\Final_models" + r"/model_17_11_2022_20_35",
+                        # saving_path + r"\Final_models" + r"\model_17_11_2022_20_35",
+                        # loading_path = saving_path + r"\Final_models" + r"/model_M=2_coherent_Tau=8_SNR=10_T=20",
                         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
                         Plot = False,
                         DataSetModelBased = DataSet_x_test)
@@ -224,26 +226,27 @@ if __name__ == "__main__":
         ############################
         ###    Load Data Set     ###
         ############################
-        loading_path = saving_path + r"\Final_models" + r"\model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+        # loading_path = saving_path + r"\Final_models" + r"\model_16_11_2022_08_39" 
+        # loading_path = saving_path + r"\Final_models" + r"\model_17_11_2022_20_35" 
         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
         # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
-        model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=0.5)  
+        # model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=0.5)  
         # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
         
         # Load it to the specified device, either gpu or cpu
-        model = model.to(device)         
-        if torch.cuda.is_available() == False:
-                        model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
+        model = model.to(device)
+        # if torch.cuda.is_available() == False:
+                        # model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
         
         Losses = PlotSpectrum(model, DataSet_Rx_test, DataSet_x_test, Sys_Model)
-        RootMUSIC_loss.append(Losses[0])
-        MUSIC_loss.append(Losses[1])
-        SPS_RootMUSIC_loss.append(Losses[2])
-        SPS_MUSIC_loss.append(Losses[3])
-        DeepRootTest_loss.append(Losses[4])
+        # RootMUSIC_loss.append(Losses[0])
+        # MUSIC_loss.append(Losses[1])
+        # SPS_RootMUSIC_loss.append(Losses[2])
+        # SPS_MUSIC_loss.append(Losses[3])
+        # DeepRootTest_loss.append(Losses[4])
             
-        print("MUSIC_{} = np.array(".format(mode), MUSIC_loss, ")")
-        print("RootMUSIC_{} = np.array(".format(mode) , RootMUSIC_loss, ")")
-        print("SPS_RootMUSIC_{} = np.array(".format(mode), SPS_RootMUSIC_loss, ")")
-        print("SPS_MUSIC_{} = np.array(".format(mode), SPS_MUSIC_loss, ")")
-        print("DeepRootMUSIC_{} = np.array(".format(mode), DeepRootTest_loss, ")")
+        # print("MUSIC_{} = np.array(".format(mode), MUSIC_loss, ")")
+        # print("RootMUSIC_{} = np.array(".format(mode) , RootMUSIC_loss, ")")
+        # print("SPS_RootMUSIC_{} = np.array(".format(mode), SPS_RootMUSIC_loss, ")")
+        # print("SPS_MUSIC_{} = np.array(".format(mode), SPS_MUSIC_loss, ")")
+        # print("DeepRootMUSIC_{} = np.array(".format(mode), DeepRootTest_loss, ")")

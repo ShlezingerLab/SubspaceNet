@@ -64,6 +64,7 @@ def Run_Simulation(Model_Train_DataSet,
     ############################
 
     ## Transform model-based test dataset into DataLoader Object:
+    '''
     if DataSetModelBased != None:
       print("Test_DataSet", len(Model_Test_DataSet))
       DataSetModelBased = torch.utils.data.DataLoader(DataSetModelBased,
@@ -72,11 +73,12 @@ def Run_Simulation(Model_Train_DataSet,
                                 drop_last=False)
       
     ## Compute MUSIC and Root-MUSIC algorithms overall loss:
-      RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSetModelBased, Sys_Model)
-      print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
-      print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
+      MUSIC_loss = evaluate_model_based(DataSetModelBased, Sys_Model)
+      # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+      # print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
       print("MUSIC Test loss = {}".format(MUSIC_loss))
-      print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss))
+      # print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss))
+    '''
 
     ############################
     ### Model initialization ###
@@ -162,8 +164,8 @@ def Run_Simulation(Model_Train_DataSet,
     ## Compute the model Overall loss
     DeepRootTest_loss = evaluate_model(model, Test_data, criterion)
     print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))
-    print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
-    print("MUSIC Test loss = {}".format(MUSIC_loss))
+    # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+    # print("MUSIC Test loss = {}".format(MUSIC_loss))
 
     ############################
     ###   Model's spectrum   ###
@@ -337,61 +339,83 @@ def PMSE(pred, DOA):
 def evaluate_model_based(DataSetModelBased, Sys_Model):
   RootMUSIC_list = []
   SPS_RootMUSIC_list = []
+  BB_MUSIC_list = []
   MUSIC_list = []
   SPS_MUSIC_list = []
   model_based_platform = ModelBasedMethods(Sys_Model)
-  for i,data in enumerate(DataSetModelBased):
-      X, Y = data
-      X_modelbased = X[0]
-      ## RootMUSIC predictions
-      DOA_pred_RootMUSIC, _, M, _, _ = model_based_platform.Classic_Root_MUSIC(X_modelbased, NUM_OF_SOURCES=True)
-      ## Spatial Smoothing RootMUSIC predictions
-      DOA_pred_SPSRootMUSIC, _, M, _, _ = model_based_platform.Classic_Root_MUSIC(X_modelbased, NUM_OF_SOURCES=True,
-                                                                                  SPS=True, sub_array_size=int(model_based_platform.N / 2) + 1)
-      
-      # if algorithm cant estimate M sources, randomize angels
-      while(DOA_pred_RootMUSIC.shape[0] < M):
-        # print("Cant estimate M sources - RootMUSIC")
-        DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-      lossRootMUSIC = PRMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
-      # lossRootMUSIC = PMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
-      RootMUSIC_list.append(lossRootMUSIC)
+  
+  if Sys_Model.scenario.startswith("Broadband"):
+    for i,data in enumerate(DataSetModelBased):
+        X, Y = data
+        X_modelbased = X[0]
+        ## RootMUSIC predictions
+        DOA_pred_MUSIC, Spectrum, M = model_based_platform.broadband_MUSIC(X_modelbased)
+        DOA_pred = model_based_platform.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
+        predicted_DOA = DOA_pred[:M][::-1]
+        
+        # if algorithm cant estimate M sources, randomize angels
+        while(predicted_DOA.shape[0] < M):
+          # print("Cant estimate M sources - MUSIC")
+          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
+        lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+        # lossMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
+        BB_MUSIC_list.append(lossMUSIC)
+    return np.mean(BB_MUSIC_list)
+  
+  
+  else:
+    for i,data in enumerate(DataSetModelBased):
+        X, Y = data
+        X_modelbased = X[0]
+        ## RootMUSIC predictions
+        DOA_pred_RootMUSIC, _, M, _, _ = model_based_platform.Classic_Root_MUSIC(X_modelbased, NUM_OF_SOURCES=True)
+        ## Spatial Smoothing RootMUSIC predictions
+        DOA_pred_SPSRootMUSIC, _, M, _, _ = model_based_platform.Classic_Root_MUSIC(X_modelbased, NUM_OF_SOURCES=True,
+                                                                                    SPS=True, sub_array_size=int(model_based_platform.N / 2) + 1)
+        
+        # if algorithm cant estimate M sources, randomize angels
+        while(DOA_pred_RootMUSIC.shape[0] < M):
+          # print("Cant estimate M sources - RootMUSIC")
+          DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
+        lossRootMUSIC = PRMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
+        # lossRootMUSIC = PMSE(DOA_pred_RootMUSIC, Y * 180 / np.pi)
+        RootMUSIC_list.append(lossRootMUSIC)
 
-      # if algorithm cant estimate M sources, randomize angels
-      while(DOA_pred_SPSRootMUSIC.shape[0] < M):
-        # print("Cant estimate M sources - SPSRootMUSIC")
-        DOA_pred_SPSRootMUSIC = np.insert(DOA_pred_SPSRootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-      lossSPSRootMUSIC = PRMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
-      # lossSPSRootMUSIC = PMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
-      SPS_RootMUSIC_list.append(lossSPSRootMUSIC)
-      
-      ## MUSIC predictions
-      DOA_pred_MUSIC, Spectrum, M = model_based_platform.Classic_MUSIC(X_modelbased, NUM_OF_SOURCES=M)
-      DOA_pred = model_based_platform.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-      predicted_DOA = DOA_pred[:M][::-1]
-      
-      # if algorithm cant estimate M sources, randomize angels
-      while(predicted_DOA.shape[0] < M):
-        # print("Cant estimate M sources - MUSIC")
-        predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-      lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
-      # lossMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
-      MUSIC_list.append(lossMUSIC)
+        # if algorithm cant estimate M sources, randomize angels
+        while(DOA_pred_SPSRootMUSIC.shape[0] < M):
+          # print("Cant estimate M sources - SPSRootMUSIC")
+          DOA_pred_SPSRootMUSIC = np.insert(DOA_pred_SPSRootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
+        lossSPSRootMUSIC = PRMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
+        # lossSPSRootMUSIC = PMSE(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
+        SPS_RootMUSIC_list.append(lossSPSRootMUSIC)
+        
+        ## MUSIC predictions
+        DOA_pred_MUSIC, Spectrum, M = model_based_platform.Classic_MUSIC(X_modelbased, NUM_OF_SOURCES=M)
+        DOA_pred = model_based_platform.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
+        predicted_DOA = DOA_pred[:M][::-1]
+        
+        # if algorithm cant estimate M sources, randomize angels
+        while(predicted_DOA.shape[0] < M):
+          # print("Cant estimate M sources - MUSIC")
+          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
+        lossMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+        # lossMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
+        MUSIC_list.append(lossMUSIC)
 
-      ## SPS MUSIC predictions
-      DOA_pred_MUSIC, Spectrum, M = model_based_platform.Classic_MUSIC(X_modelbased, NUM_OF_SOURCES=True,
-                                                                        SPS=True, sub_array_size=int(model_based_platform.N / 2) + 1)
-      DOA_pred = model_based_platform.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-      predicted_DOA = DOA_pred[:M][::-1]
-      
-      # if algorithm cant estimate M sources, randomize angels
-      while(predicted_DOA.shape[0] < M):
-        # print("Cant estimate M sources - SPS MUSIC")
-        predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-      lossSPSMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
-      # lossSPSMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
-      SPS_MUSIC_list.append(lossSPSMUSIC)
-  return np.mean(RootMUSIC_list), np.mean(MUSIC_list), np.mean(SPS_RootMUSIC_list), np.mean(SPS_MUSIC_list)
+        ## SPS MUSIC predictions
+        DOA_pred_MUSIC, Spectrum, M = model_based_platform.Classic_MUSIC(X_modelbased, NUM_OF_SOURCES=True,
+                                                                          SPS=True, sub_array_size=int(model_based_platform.N / 2) + 1)
+        DOA_pred = model_based_platform.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
+        predicted_DOA = DOA_pred[:M][::-1]
+        
+        # if algorithm cant estimate M sources, randomize angels
+        while(predicted_DOA.shape[0] < M):
+          # print("Cant estimate M sources - SPS MUSIC")
+          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
+        lossSPSMUSIC = PRMSE(predicted_DOA, Y * 180 / np.pi)
+        # lossSPSMUSIC = PMSE(predicted_DOA, Y * 180 / np.pi)
+        SPS_MUSIC_list.append(lossSPSMUSIC)
+    return np.mean(RootMUSIC_list), np.mean(MUSIC_list), np.mean(SPS_RootMUSIC_list), np.mean(SPS_MUSIC_list)
 
 
 def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
@@ -413,18 +437,21 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
                           drop_last=False)
   
   model_based_platform = ModelBasedMethods(Sys_Model)
-
-  RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  if Sys_Model.scenario.startswith("Broadband"):
+    MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  # else:
+  #   RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss = evaluate_model_based(DataSet_x_test, Sys_Model)
+  
   DeepRootTest_loss = evaluate_model(DeepRootMUSIC, DataSet_Rx_test, criterion)      
   # print("minimal_signal_eig mean", torch.mean(minimal_signal_eig))
   # print("minimal_signal_eig std", torch.std(minimal_signal_eig))
   # print("maximal_noise_eig mean", torch.mean(maximal_noise_eig))
   # print("maximal_noise_eig std", torch.std(maximal_noise_eig))
   print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))
-  print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
-  print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
+  # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+  # print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
   print("MUSIC Test loss = {}".format(MUSIC_loss))
-  print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss)) 
+  # print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss)) 
   
   if PLOTTING:
     fig = plt.figure(figsize=(16, 12), dpi=80)
@@ -506,4 +533,5 @@ def PlotSpectrum(DeepRootMUSIC, DataSet_Rx_test, DataSet_x_test, Sys_Model):
             ax3.plot([0,angle * np.pi / 180],[0, r],marker='o')
 
     plt.show()
-  return RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, DeepRootTest_loss
+  # return RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, DeepRootTest_loss
+  return MUSIC_loss

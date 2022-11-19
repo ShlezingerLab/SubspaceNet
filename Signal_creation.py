@@ -54,32 +54,30 @@ class Samples(System_model):
         elif self.scenario.startswith("Broadband"):
             samples = []
             SV = []
+            f_axis = []
  
             signal = self.signal_creation(mode, S_mean, S_Var, SNR)
             noise = self.noise_creation(N_mean, N_Var)
-
-            # freq_axis_positive = np.linspace(0, self.f_sampling // 2, self.f_sampling // 2 + 1, endpoint=True)
-            # freq_axis_negative = np.linspace(-(self.f_sampling // 2) + 1, 0,  self.f_sampling // 2 - 1 , endpoint=False)
-            # freq_axis = np.concatenate([freq_axis_positive, freq_axis_negative])
-            freq_axis_positive = np.linspace(0, self.f_sampling // 2, self.f_sampling // 2 + 1, endpoint=True)
-            freq_axis_negative = np.linspace(-(self.f_sampling // 2) + 1, 0,  self.f_sampling // 2 - 1 , endpoint=False)
-            freq_axis = np.concatenate([freq_axis_positive, freq_axis_negative])
             
             # TODO: check if the data creation became much slower
             
             for idx in range(self.f_sampling):
                 
                 # mapping from index i to frequency f
-                if idx > int(self.f_sampling) // 2: f = - int(self.f_sampling) + idx
-                else: f = idx
-                
+                if idx > int(self.f_sampling) // 2:
+                    f = - int(self.f_sampling) + idx
+                else:
+                    f = idx
                 A = np.array([self.SV_Creation(theta, f) for theta in self.DOA]).T
                 samples.append((A @ signal[:, idx]) + noise[:, idx])
+                # samples.append((A @ signal[:, idx % (int(self.f_sampling) // 2)]) + noise[:, idx])
+                # samples.append((A @ signal[:, f]) + noise[:, idx])
+                # samples.append((A @ signal[:, np.abs(f)]))
                 SV.append(A)
+                f_axis.append(f)
             samples = np.array(samples)
             SV = np.array(SV)
-            samples_time_domain = np.fft.ifft(samples.T, axis=1, n=self.T)[:, :self.T]
-            # samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
+            samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
             return samples_time_domain, signal, SV, noise
 
     def noise_creation(self, N_mean, N_Var):
@@ -150,7 +148,7 @@ class Samples(System_model):
                     sig_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
                     signal += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
                 signal *=  (1/num_sub_carriers)
-                return np.tile(np.fft.fft(carriers_signals), (self.M, 1))
+                return np.tile(np.fft.fft(signal), (self.M, 1))
                 
         else:
             return 0
