@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from System_Model import System_model
-from Signal_creation import Sampels
+from Signal_creation import Samples
 from tqdm import tqdm
 import random
 import h5py
@@ -17,20 +17,24 @@ def CreateDataSetCombined(scenario, mode, N, M, T, Sampels_size, tau, Save=False
     DataSetRx = []
     print("Updated")
     for i in tqdm(range(Sampels_size)):
-        # System Model Initialization
-        Sys_Model = System_model(scenario= scenario, N= N, M= M)
+        # # System Model Initialization
+        # Sys_Model = System_model(scenario= scenario, N= N, M= M)
         
-        # Sampels Creation - Model Initialization                           
-        Sys_Model_sampels = Sampels(Sys_Model, DOA= True_DOA, observations=T)                 
+        # # Samples Creation - Model Initialization                           
+        # sys_model_samples = Samples(Sys_Model, DOA= True_DOA, observations=T)                 
         
-        X = torch.tensor(Sys_Model_sampels.Sampels_creation(mode = mode, N_mean= 0,
-                                            N_Var= 1, S_mean= 0, S_Var= 1,
-                                            SNR= SNR, Carriers= None)[0], dtype=torch.complex64)                   # Sampels Creation 
-        Y = torch.tensor(Sys_Model_sampels.DOA, dtype=torch.float64)
+        # Samples Creation - Model Initialization                           
+        
+        Sys_Model = Samples(scenario= scenario, N= N, M= M, DOA= True_DOA, observations=T, freq_values=[0, 500])                 
+        X = torch.tensor(Sys_Model.samples_creation(mode = mode, N_mean= 0,
+                                                    N_Var= 1, S_mean= 0, S_Var= 1,
+                                                    SNR= SNR)[0], dtype=torch.complex64)                   # Samples Creation 
+        Y = torch.tensor(Sys_Model.DOA, dtype=torch.float64)
         DataSet.append((X,Y))
         
         New_Rx_tau = Create_Autocorr_tensor_for_data_loader(X, tau).to(torch.float)
         DataSetRx.append((New_Rx_tau,Y))
+    
     if Save:
         torch.save(obj= DataSet, f=DataSet_path + '/DataSet_x_{}_{}_{}_M={}_N={}_T={}_SNR={}'.format(scenario, mode, Sampels_size, M, N, T, SNR) + '.h5')
         torch.save(obj= DataSetRx, f=DataSet_path + '/DataSet_Rx_{}_{}_{}_M={}_N={}_T={}_SNR={}'.format(scenario, mode, Sampels_size, M, N, T, SNR) + '.h5')
@@ -46,7 +50,7 @@ def torch_Autocorr_mat_for_data_loader(X, lag):
     '''
     This function compute the autocorrelation matrices of the T samples
     x(t), t=1, ... ,T for a given lag.
-    @ X(input) = Sampels matrix input shape [N, T] 
+    @ X(input) = Samples matrix input shape [N, T] 
     @ lag(input) = the requested delay of the Autocorrelation calculation
     @ Rx_lag = the autocorrelation matrix in a given lag []
     '''
