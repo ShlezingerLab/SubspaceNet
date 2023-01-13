@@ -48,7 +48,9 @@ class Deep_Root_Net(nn.Module):
         for iter in range(self.BATCH_SIZE):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
-            Un = eigenvectors[:, M:]
+            Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
+            # Un = eigenvectors[:, M:]
+            # Un = eigenvectors[:, M:]
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -135,7 +137,7 @@ class Deep_Root_Net(nn.Module):
         ## Rest of Root MUSIC algorithm
         # print(Rz)
         DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
-        return DOA, DOA_all, roots
+        return DOA, DOA_all, roots, Rz
 
 
 
@@ -181,7 +183,8 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
         for iter in range(self.BATCH_SIZE):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
-            Un = eigenvectors[:, M:]
+            Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
+            # Un = eigenvectors[:, M:]
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -240,27 +243,24 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
 
         # New_Rx_tau = self.Create_Autocorr_tensor(X, self.tau).to(torch.float)         # Output shape [Batch size, tau, 2N, N]
         
-        ## AutoEncoder Archtecture
+        ## AutoEncoder Architecture
         x = self.conv1(New_Rx_tau)
         x = self.AntiRectifier(x)
-        # print(x.shape)
+
         x = self.conv2(x)
         x = self.AntiRectifier(x)
-        # print(x.shape)
-
-        x = self.AntiRectifier(self.conv3(x))
-        # print(x.shape)
+        
+        x = self.conv3(x)
+        x = self.AntiRectifier(x)
 
         x = self.deconv2(x)
         x = self.AntiRectifier(x)
-        # print(x.shape)
 
-        x = self.AntiRectifier(self.deconv3(x))
-        # print(x.shape)
+        x = self.deconv3(x)
+        x = self.AntiRectifier(x)
 
         x = self.DropOut(x)
         Rx = self.deconv4(x)
-        # print(Rx.shape)
 
         Rx_View = Rx.view(Rx.size(0),Rx.size(2),Rx.size(3))                           # Output shape [Batch size, 2N, N]
 
@@ -275,7 +275,7 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
         ## Rest of Root MUSIC algorithm
         # print(Rz)
         DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
-        return DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig
+        return DOA, DOA_all, roots, Rz
 
 class Deep_Root_Net_Broadband(nn.Module):
     def __init__(self, tau, ActivationVal):
@@ -319,7 +319,8 @@ class Deep_Root_Net_Broadband(nn.Module):
         for iter in range(self.BATCH_SIZE):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
-            Un = eigenvectors[:, M:]
+            Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
+            # Un = eigenvectors[:, M:]
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -337,18 +338,9 @@ class Deep_Root_Net_Broadband(nn.Module):
             roots = roots[mask][:M]
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                      # Calculate the DOA our of the phase component
-            DOA_list.append(DOA_pred)                                                               # Convert from radians to Deegres
-        
-            eigenvalues = torch.real(eigenvalues) / torch.max(torch.real(eigenvalues))
-            # eigenvalues = torch.real(eigenvalues)
-            norm_eig = torch.flip(torch.sort(eigenvalues)[0], (0,))
-            # eig_diffs.append((norm_eig[0] - norm_eig)[1])
-            minimal_signal_eig = norm_eig[M-1] - norm_eig[-1]
-            maximal_noise_eig = norm_eig[M] - norm_eig[-1]
-            # print(eigenvalues)
-            # print(norm_eig[M-1] - norm_eig[-1], norm_eig[M] - norm_eig[-1])
+            DOA_list.append(DOA_pred)                                                               # Convert from radians to Degrees
             
-        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return, minimal_signal_eig, maximal_noise_eig
+        return torch.stack(DOA_list, dim = 0), torch.stack(DOA_all_list, dim = 0), roots_to_return
     
     def Gramian_matrix(self, Kx, eps):
         '''
@@ -412,8 +404,8 @@ class Deep_Root_Net_Broadband(nn.Module):
 
         ## Rest of Root MUSIC algorithm
         # print(Rz)
-        DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
-        return DOA, DOA_all, roots, minimal_signal_eig , maximal_noise_eig
+        DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
+        return DOA, DOA_all, roots, Rz
 
     
     

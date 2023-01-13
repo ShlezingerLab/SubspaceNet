@@ -30,10 +30,7 @@ class Samples(System_model):
         super().__init__(scenario, N, M, freq_values)
         self.T = observations
         if DOA == None:
-          # self.DOA = np.array(np.pi * (np.random.rand(self.M) - 0.5))         # generate aribitrary DOA angels
           self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
-        #   self.DOA = (np.pi / 180) * np.array(create_closely_spaced_DOA(M = self.M, gap = 10)) # (~0.2 rad)
-            # self.DOA = np.array(np.round((np.pi * ((np.random.rand(self.M) - 0.5))),decimals=2))
         else: 
           self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
     
@@ -112,7 +109,6 @@ class Samples(System_model):
         if self.scenario.startswith("Broadband_simple"):
             # generate M random carriers
             carriers = np.random.choice(self.f_rng, self.M).reshape((self.M, 1))
-            # carriers = np.array([[100],[350]])
                         
             # create M non-coherent signals
             if mode == "non-coherent":
@@ -120,7 +116,6 @@ class Samples(System_model):
                 carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers @ self.time_axis.reshape((1, len(self.time_axis)))).T
                 return np.fft.fft(carriers_signals.T)
             
-            # TODO: ASK NIR: maybe should place different carriers even though the mode is coherent ?  
             # Coherent signals: same amplitude and phase for all signals 
             if mode == "coherent":
                 carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
@@ -139,8 +134,7 @@ class Samples(System_model):
                         signal[i] += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
                     signal[i] *=  (1/num_sub_carriers)          
                 return np.fft.fft(signal)
-            
-            # TODO: ASK NIR: maybe should place different carriers even though the mode is coherent ?  
+             
             # Coherent signals: same amplitude and phase for all signals 
             signal = np.zeros((1, len(self.time_axis))) + 1j * np.zeros((1, len(self.time_axis)))
             if mode == "coherent":

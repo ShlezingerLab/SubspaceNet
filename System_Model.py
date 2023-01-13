@@ -11,13 +11,12 @@ class System_model(object):
     def scenario_define(self, freq_values):
         if self.scenario.startswith("Broadband"):
             ## frequencies initialization ##
-            self.min_freq = freq_values[0]                          # Define minimal frequency value  
-            self.max_freq = freq_values[1]                          # Define maximal frequency value  
+            self.min_freq = freq_values[0]   # Define minimal frequency value  
+            self.max_freq = freq_values[1]   # Define maximal frequency value  
             self.f_rng = np.linspace(start=self.min_freq, stop=self.max_freq,
                                      num=self.max_freq - self.min_freq,
                                      endpoint = False)                    # Frequency range of interest  
             self.f_sampling = 2 * (self.max_freq)                   # Define sampling rate as twice the maximal frequency
-            # self.f_sampling = 2000                                    # Define sampling rate as twice the maximal frequency
             self.time_axis = np.linspace(0, 1, self.f_sampling, endpoint = False)                      # Define time axis
             
             ## Array initialization ##
@@ -30,6 +29,7 @@ class System_model(object):
             self.max_freq = None
             self.f_rng = None
             self.fs = None
+            
             ## Array initialization ##
             self.dist = 1 / 2                                       # distance between array elements
         else:

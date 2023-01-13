@@ -19,11 +19,11 @@ os.system('cls||clear')
 
 if __name__ == "__main__":
     device              = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
-    Main_path           = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code"
-    Main_Data_path      = r"G:\\My Drive\\Thesis\\DeepRootMUSIC\\Code\\DataSet"
+    Main_path           = r"C:\Users\dorsh\OneDrive\Desktop\My Drive\Thesis\DeepRootMUSIC\Code"
+    Main_Data_path      = Main_path + r"\\DataSet"
+    saving_path         = Main_path + r"\\Weights"
+    Simulations_path    = Main_path + r"\\Simulations"
     Data_Scenario_path  = r"\\LowSNR"
-    saving_path         = r"G:\My Drive\Thesis\DeepRootMUSIC\Code\Weights"
-    Simulations_path    = r"G:\My Drive\Thesis\\DeepRootMUSIC\\Code\\Simulations"
 
     Set_Overall_Seed()
     now = datetime.now()
@@ -33,10 +33,10 @@ if __name__ == "__main__":
     ############################
     ##        Commands        ##
     ############################
-    SAVE_TO_FILE = True
+    SAVE_TO_FILE = False
     CREATE_DATA = True
     LOAD_DATA = False
-    TRAIN_MODE = True
+    TRAIN_MODE = False
     SAVE_MODEL = False
     EVALUATE_MODE = True
     
@@ -55,14 +55,14 @@ if __name__ == "__main__":
     tau = 8
     N = 8
     M = 2
-    T = 50
+    T = 20
     SNR = 10
-    nNumberOfSampels = 60000
-    Train_Test_Ratio = 0.05
+    nNumberOfSampels = 100
+    Train_Test_Ratio = 1
+    # scenario = "Broadband_OFDM"
+    scenario = "NarrowBand"
     # scenario = "Broadband_simple"
-    scenario = "Broadband_OFDM"
-    # scenario = "Broadband_simple"
-    mode = "non-coherent"
+    mode = "coherent"
     
     ############################
     ###   Create Data Sets   ###  
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     if CREATE_DATA:
         Set_Overall_Seed()
-        Create_Training_Data = True
+        Create_Training_Data = False
         Create_Testing_Data = True
         print("Creating Data...")
         if Create_Training_Data:
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         optimal_gamma_val = 1
         optimal_bs = 2048
         optimal_lr = 0.001
-        optimal_step = 80
+        optimal_step = 1
         epochs = 80
 
         Test_losses = []
@@ -140,6 +140,7 @@ if __name__ == "__main__":
         ############################
  
         print("\n--- New Simulation ---\n")
+        # print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
         print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
         print("Simulation parameters:")
         print("Learning Rate = {}".format(optimal_lr))
@@ -168,11 +169,8 @@ if __name__ == "__main__":
                         model_name= "model_tau=2_M=2_100Samples_SNR_{}_T=2_just_a_test".format(SNR),
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
-                        load_flag = True,
-                        loading_path = saving_path + r"\Final_models" + r"/model_19_11_2022_04_25",
-                        # saving_path + r"\Final_models" + r"\model_17_11_2022_20_35",
-                        # loading_path = saving_path + r"\Final_models" + r"/model_M=2_coherent_Tau=8_SNR=10_T=20",
-                        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
+                        load_flag = False,
+                        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
                         Plot = False,
                         DataSetModelBased = DataSet_x_test)
         
@@ -226,27 +224,58 @@ if __name__ == "__main__":
         ############################
         ###    Load Data Set     ###
         ############################
-        # loading_path = saving_path + r"\Final_models" + r"\model_19_11_2022_04_25" 
-        # loading_path = saving_path + r"\Final_models" + r"\model_17_11_2022_20_35" 
-        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-        # model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5)  
-        # model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=0.5)  
-        # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
+        loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+        
+        if scenario.startswith("Broadband"):
+            model = Deep_Root_Net_Broadband(tau=tau, ActivationVal=0.5)  
+            loading_path = saving_path + r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(2, mode, tau, SNR, 200)
+        elif T == 200 and SNR == 10 and M==2: 
+            model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
+        else:
+            model = Deep_Root_Net_AntiRectifier(tau=tau, ActivationVal=0.5) 
+
         
         # Load it to the specified device, either gpu or cpu
         model = model.to(device)
-        # if torch.cuda.is_available() == False:
-                        # model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
+        if torch.cuda.is_available() == False:
+                        model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
+                        
+        criterion = PRMSELoss() #define loss criterion
         
-        Losses = PlotSpectrum(model, DataSet_Rx_test, DataSet_x_test, Sys_Model)
-        # RootMUSIC_loss.append(Losses[0])
-        # MUSIC_loss.append(Losses[1])
-        # SPS_RootMUSIC_loss.append(Losses[2])
-        # SPS_MUSIC_loss.append(Losses[3])
-        # DeepRootTest_loss.append(Losses[4])
-            
-        # print("MUSIC_{} = np.array(".format(mode), MUSIC_loss, ")")
-        # print("RootMUSIC_{} = np.array(".format(mode) , RootMUSIC_loss, ")")
-        # print("SPS_RootMUSIC_{} = np.array(".format(mode), SPS_RootMUSIC_loss, ")")
-        # print("SPS_MUSIC_{} = np.array(".format(mode), SPS_MUSIC_loss, ")")
-        # print("DeepRootMUSIC_{} = np.array(".format(mode), DeepRootTest_loss, ")")
+        Data_Set_path = Main_path + r"\\DataSet"
+        DataSet_Rx_test = torch.utils.data.DataLoader(DataSet_Rx_test,
+                                batch_size=1,
+                                shuffle=False,
+                                drop_last=False)
+        
+        DataSet_x_test = torch.utils.data.DataLoader(DataSet_x_test,
+                                batch_size=1,
+                                shuffle=False,
+                                drop_last=False)
+        
+        mb = ModelBasedMethods(Sys_Model)
+  
+        DeepRootTest_loss = evaluate_model(model, DataSet_Rx_test, criterion)      
+        print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))                
+                        
+        loss_hybrid_MUSIC, loss_hybrid_ESPRIT = evaluate_hybrid_model(model, DataSet_Rx_test, Sys_Model)
+        print("hybrid MUSIC Test loss = {}".format(loss_hybrid_MUSIC))
+        print("hybrid ESPRIT Test loss = {}".format(loss_hybrid_ESPRIT))
+
+        losses = evaluate_model_based(DataSet_x_test, Sys_Model)
+        
+        if scenario.startswith("Broadband"):
+            BB_MUSIC_loss, MUSIC_loss, ESPRIT_loss = losses
+            print("BB MUSIC Test loss = {}".format(BB_MUSIC_loss))
+            print("MUSIC Test loss = {}".format(MUSIC_loss))
+            print("ESPRIT Test loss = {}".format(ESPRIT_loss))
+        
+        elif scenario.startswith("NarrowBand"):
+            RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, ESPRIT_loss= losses
+            print("MUSIC Test loss = {}".format(MUSIC_loss))
+            print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+            print("ESPRIT Test loss = {}".format(ESPRIT_loss))
+            print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
+            print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss))
+        plt.show()
+        print("end")
