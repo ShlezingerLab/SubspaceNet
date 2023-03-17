@@ -53,12 +53,14 @@ class ModelBasedMethods(object):
         Implementation of the model-based MUSIC algorithm in Narrow-band scenario.
         
         Input:
-        @ X = samples vector shape : Nx1
-        @ NUM_OF_SOURCES = known number of sources flag
-        @ SPS = pre-processing Spatial smoothing algorithm flag
-        @ sub_array_size = size of sub array for spatial smoothing
+        --------------------------------------------
+        X = samples vector shape : Nx1
+        NUM_OF_SOURCES = known number of sources flag
+        SPS = pre-processing Spatial smoothing algorithm flag
+        sub_array_size = size of sub array for spatial smoothing
         
         Output:
+        --------------------------------------------
         @ DOA_pred = the predicted DOA's
         @ Spectrum = the MUSIC spectrum
         @ M = number of estimated/given sources
@@ -162,13 +164,13 @@ class ModelBasedMethods(object):
         DOA_pred_all = (180 / np.pi) * DOA_pred_all                                     # Convert from radians to Deegres
         return DOA_pred, roots, M, DOA_pred_all, roots_angels_all
 
-    def spectrum_calculation(self, Un, f=1, Array_form="ULA"):
+    def spectrum_calculation(self, Un, f=1, array_form="ULA"):
         Spectrum_equation = []
         for angle in self.angels:
-            a = self.system_model.SV_Creation(theta= angle, f= f, Array_form = Array_form)
+            a = self.system_model.SV_Creation(theta= angle, f= f, array_form = array_form)
             a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(np.conj(a).T @ Un @ np.conj(Un).T @ a)
-        Spectrum_equation = np.array(Spectrum_equation, dtype=np.complex)
+        Spectrum_equation = np.array(Spectrum_equation, dtype=complex)
         Spectrum = 1 / Spectrum_equation
         return Spectrum, Spectrum_equation
     
@@ -288,9 +290,9 @@ class ModelBasedMethods(object):
             f = 1
         
         eigenvalues, eigenvectors = np.linalg.eig(R_x)  # Apply eigenvalue decomposition (EVD)
-        eigenvectors = eigenvectors[:, np.argsort(eigenvalues)[::-1]]  # Sort eigenvectors based on eigenvalues order 
-        Us, Un= eigenvectors[:, 0:M], eigenvectors[:, M:]  # Create distinction between noise and signal subspaces 
-        Us_upper, Us_lower = Us[0:N-1], Us[1:N]
+        eigenvectors = eigenvectors[:, np.argsort(eigenvalues)[::-1]]   # Sort eigenvectors based on eigenvalues order 
+        Us, Un= eigenvectors[:, 0:M], eigenvectors[:, M:]   # Create distinction between noise and signal subspaces 
+        Us_upper, Us_lower = Us[0:N-1], Us[1:N]     # separate the first M columns of the signal subspace
         
         phi = np.linalg.pinv(Us_upper) @ Us_lower
         phi_eigenvalues, _ = np.linalg.eig(phi)                          # Find the eigenvalues and eigenvectors using EVD
@@ -298,3 +300,48 @@ class ModelBasedMethods(object):
         DOA_pred = -np.arcsin((1/(2 * np.pi * self.dist * f)) * eigenvalues_angle)        # Calculate the DOA out of the phase component
         DOA_pred = (180 / np.pi) * DOA_pred                                     # Convert from radians to degrees
         return DOA_pred, M
+
+    
+    def MVDR(self, X, NUM_OF_SOURCES:bool=True, SPS:bool=False, sub_array_size=0,
+               HYBRID = False, model_mvdr=None, Rz=None, scenario='NarrowBand', eps = 0):
+        '''
+        Implamentation of the Minimum Variance Beamformer algorithm
+        in Narrowband scenario, while applying Spatial Smoothing
+
+        Input:
+        @ X = sampels vector shape : Nx1
+        
+        Output:
+        @ 
+
+        '''
+        if NUM_OF_SOURCES:                                                              # NUM_OF_SOURCES = TRUE : number of sources is given
+            M = self.M
+        else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues        
+            # clustering technique
+            pass
+        response_curve = []
+        for angle in self.angels:
+            if HYBRID:
+                # Predict the covariance matrix using the DR model 
+                model_mvdr.eval()
+                R_x = model_mvdr(Rz, M)[3]
+                R_x = np.array(R_x.squeeze())
+            else:
+                R_x = np.cov(X)                                                     # Create covariance matrix from samples
+
+            
+            ## Diagonal Loading
+            R_eps_MVDR = R_x + eps * np.trace(R_x) * np.identity(R_x.shape[0])
+        
+            ## BeamForming response calculation 
+            R_inv = np.linalg.inv(R_eps_MVDR)
+            a = self.system_model.SV_Creation(theta = angle, f= 1, array_form = "ULA").reshape((self.N,1))
+            
+            ## Adaptive calculation of W_opt
+            W_opt = (R_inv @ a) / (np.conj(a).T @ R_inv @ a)
+            
+            response_curve.append(np.asscalar((np.conj(W_opt).T @ R_eps_MVDR @ W_opt).reshape((1))))
+            
+        Response_Curve = np.array(response_curve, dtype=np.complex)
+        return Response_Curve
