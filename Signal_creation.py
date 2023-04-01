@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from System_Model import *
 
-def create_DOA_with_gap(M:int, gap:float) -> np.ndarray:        
+def create_DOA_with_gap(M:int, gap:float) :        
     """Create sources with minimal gap value for simulations
     Args:
         M (int): number of sources
@@ -19,7 +19,7 @@ def create_DOA_with_gap(M:int, gap:float) -> np.ndarray:
             break
     return DOA
 
-def create_closely_spaced_DOA(M:int, gap:float) -> np.ndarray:
+def create_closely_spaced_DOA(M:int, gap:float):
     """Create closely spaced sources scenario with minimal gap value for simulations
 
     Args:
@@ -73,7 +73,7 @@ class Samples(System_model):
         else: 
           self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
     
-    def samples_creation(self, mode, N_mean= 0, N_Var= 1, S_mean= 0, S_Var= 1, SNR= 10, eta = 0):
+    def samples_creation(self, mode, N_mean= 0, N_Var= 1, S_mean= 0, S_Var= 1, SNR= 10, eta = 0, geo_noise_var = 0):
         '''
         @mode = represent the specific mode in the specific scenario
                 e.g. "Broadband" scenario in "non-coherent" mode
@@ -82,7 +82,7 @@ class Samples(System_model):
         if self.scenario.startswith("NarrowBand"):
             signal = self.signal_creation(mode, S_mean, S_Var, SNR)
             noise = self.noise_creation(N_mean, N_Var)
-            A = np.array([self.SV_Creation(theta, eta=eta) for theta in self.DOA]).T
+            A = np.array([self.SV_Creation(theta, eta=eta, geo_noise_var=geo_noise_var) for theta in self.DOA]).T
             
             samples = (A @ signal) + noise 
             return samples, signal, A, noise

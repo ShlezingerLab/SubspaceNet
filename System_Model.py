@@ -50,7 +50,8 @@ class System_model(object):
     def create_array(self):
         self.array = np.linspace(0, self.N, self.N, endpoint = False)   # create array of sensors locations
     
-    def SV_Creation(self, theta, f=1, array_form= "ULA", eta = 0):
+    def SV_Creation(self, theta:np.ndarray, f:float=1, array_form= "ULA",
+                            eta:float = 0, geo_noise_var:float = 0):
         if self.scenario.startswith("NarrowBand"):
             f = 1
         # if array_form.startswith("ULA"):
@@ -59,7 +60,9 @@ class System_model(object):
         if array_form.startswith("ULA"):
             ## uniform deviation in spacing (for each sensor)
             mis_distance = np.random.uniform(low= -1 * eta, high= eta, size=self.N)
-            return np.exp(-2 * 1j * np.pi * f * (mis_distance + self.dist) * self.array * np.sin(theta))
+            # mis_geometry_noise = np.sqrt(geo_noise_var) * (np.sqrt(2) / 2) * (np.random.randn(self.N) + 1j * np.random.randn(self.N))
+            mis_geometry_noise = np.sqrt(geo_noise_var) * (np.random.randn(self.N))
+            return np.exp(-2 * 1j * np.pi * f * (mis_distance + self.dist) * self.array * np.sin(theta)) + mis_geometry_noise
             
             ## Constant deviation in spacing 
             # return np.exp(-2 * 1j * np.pi * f * (eta + self.dist) * self.array * np.sin(theta))

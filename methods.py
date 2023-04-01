@@ -305,15 +305,17 @@ class ModelBasedMethods(object):
     def MVDR(self, X, NUM_OF_SOURCES:bool=True, SPS:bool=False, sub_array_size=0,
                HYBRID = False, model_mvdr=None, Rz=None, scenario='NarrowBand', eps = 0):
         '''
-        Implamentation of the Minimum Variance Beamformer algorithm
-        in Narrowband scenario, while applying Spatial Smoothing
+        Implementation of the Minimum Variance beamformer algorithm
+        in narrow-band scenario, while applying spatial-smoothing
 
-        Input:
-        @ X = sampels vector shape : Nx1
+        Input
+        -------------
+        X: samples vector shape : Nx1
         
         Output:
-        @ 
-
+        -------------
+        response_curve: the response curve of the MVDR beamformer  
+        
         '''
         if NUM_OF_SOURCES:                                                              # NUM_OF_SOURCES = TRUE : number of sources is given
             M = self.M
@@ -330,7 +332,6 @@ class ModelBasedMethods(object):
             else:
                 R_x = np.cov(X)                                                     # Create covariance matrix from samples
 
-            
             ## Diagonal Loading
             R_eps_MVDR = R_x + eps * np.trace(R_x) * np.identity(R_x.shape[0])
         
@@ -343,5 +344,5 @@ class ModelBasedMethods(object):
             
             response_curve.append(np.asscalar((np.conj(W_opt).T @ R_eps_MVDR @ W_opt).reshape((1))))
             
-        Response_Curve = np.array(response_curve, dtype=np.complex)
-        return Response_Curve
+        response_curve = np.array(response_curve, dtype=np.complex)
+        return response_curve

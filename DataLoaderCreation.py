@@ -10,7 +10,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def create_dataset(scenario, mode, N, M, T, Sampels_size, tau,
                           Save=False, DataSet_path= None, True_DOA = None,
-                          SNR = 10, eta = 0):
+                          SNR = 10, eta = 0, geo_noise_var = 0):
     '''
     @Scenario = "NarrowBand" or "BroadBand"
     @mode = "coherent", "non-coherent"
@@ -25,7 +25,8 @@ def create_dataset(scenario, mode, N, M, T, Sampels_size, tau,
         X = torch.tensor(Sys_Model.samples_creation(mode = mode,                    # Observations matrix creation
                                                     N_mean= 0, N_Var= 1,
                                                     S_mean= 0, S_Var= 1,
-                                                    SNR= SNR, eta = eta)[0],
+                                                    SNR= SNR, eta = eta,
+                                                    geo_noise_var = geo_noise_var)[0],
                          dtype=torch.complex64)                                     
         Y = torch.tensor(Sys_Model.DOA, dtype=torch.float64)                        # DoA vector
         DataSet.append((X,Y))                                                       # Couple observations and DoA's 
@@ -33,9 +34,9 @@ def create_dataset(scenario, mode, N, M, T, Sampels_size, tau,
         DataSetRx.append((New_Rx_tau,Y))                                            # Couple observations and DoA's
     
     if Save:
-        torch.save(obj= DataSet  , f=DataSet_path + r"/DataSet_x_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta) + '.h5')
-        torch.save(obj= DataSetRx, f=DataSet_path + r"/DataSet_Rx_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta) + '.h5')
-        torch.save(obj= Sys_Model, f=DataSet_path + r"/Sys_Model_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta) + '.h5')
+        torch.save(obj= DataSet  , f=DataSet_path + r"/DataSet_x_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta, geo_noise_var) + '.h5')
+        torch.save(obj= DataSetRx, f=DataSet_path + r"/DataSet_Rx_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta, geo_noise_var) + '.h5')
+        torch.save(obj= Sys_Model, f=DataSet_path + r"/Sys_Model_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}".format(scenario, mode, Sampels_size, M, N, T, SNR, eta, geo_noise_var) + '.h5')
     
     return DataSet, DataSetRx ,Sys_Model
 
