@@ -7,7 +7,6 @@ import warnings
 warnings.simplefilter("ignore")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
 
-
 class Deep_Root_Net(nn.Module):
     def __init__(self, tau, ActivationVal):
         self.tau = tau
@@ -138,8 +137,6 @@ class Deep_Root_Net(nn.Module):
         # print(Rz)
         DOA, DOA_all, roots, sorted_angels = self.Root_MUSIC(Rz, M)                                                  # Output shape [Batch size, M]
         return DOA, DOA_all, roots, Rz, sorted_angels
-
-
 
 class Deep_Root_Net_AntiRectifier(nn.Module):
     def __init__(self, tau):
@@ -310,13 +307,13 @@ class Deep_Augmented_MUSIC(nn.Module):
             X = torch.cat((X, torch.unsqueeze(X[i].reshape(T, 2 * N),0)),0)
         return X
     
-    def SV_Creation(self, theta):
+    def steering_vec(self, theta):
             return torch.exp(-1 * 1j * np.pi * torch.linspace(0, self.N - 1, self.N) * np.sin(theta))
     
     def spectrum_calculation(self, Un, f=1, array_form="ULA"):
         Spectrum_equation = []
         for angle in self.angels:
-            a = self.SV_Creation(theta= angle)
+            a = self.steering_vec(theta= angle)
             a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(torch.conj(a).T @ Un @ torch.conj(Un).T @ a)
         Spectrum_equation = torch.stack(Spectrum_equation, dim=0)

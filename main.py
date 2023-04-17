@@ -46,6 +46,7 @@ if __name__ == "__main__":
     Main_Data_path      = Main_path + "\DataSet"
     saving_path         = Main_path + "\Weights"
     simulations_path    = Main_path + "\Simulations"
+    # Data_Scenario_path  = r"\CoherentSourcesWithGap"
     Data_Scenario_path  = r"\LowSNR"
     
     # Initialize time and date
@@ -54,15 +55,15 @@ if __name__ == "__main__":
     dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
 
     # Define compilation device and set seed
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     set_unified_seed()
     
     ############################
     ##   Operation commands   ##
     ############################
-    commands = {"SAVE_TO_FILE"  : False,    # Saving results to file or present them over CMD
+    commands = {"SAVE_TO_FILE"  : True,    # Saving results to file or present them over CMD
                 "CREATE_DATA"   : False,    # Creating new data
-                "LOAD_DATA"     : True,     # Loading data from dataset 
+                "LOAD_DATA"     : False,     # Loading data from dataset 
                 "TRAIN_MODE"    : False,    # Applying training operation
                 "SAVE_MODEL"    : False,    # Saving tuned model
                 "EVALUATE_MODE" : True}     # Evaluating desired algorithms
@@ -79,24 +80,24 @@ if __name__ == "__main__":
     ############################
     #    Parameters setting   #
     ############################
-    
+    # for SNR in [5, 6, 7, 8, 9, 10]:
     # System model parameters
-    tau = 1                     # Number of lags
+    tau = 8                     # Number of lags
     N = 8                       # Number of sensors
     M = 2                       # number of sources
-    T = 2                     # Number of observations, ideal = 200 or above
-    SNR = 5                    # Signal to noise ratio, ideal = 10 or above
+    T = 500                     # Number of observations, ideal = 200 or above
+    SNR = 10                    # Signal to noise ratio, ideal = 10 or above
     
     ## Signal parameters
-    scenario = "NarrowBand"     # signals type, options: "NarrowBand", "Broadband_OFDM", "Broadband_simple"
+    scenario = "Broadband_OFDM"     # signals type, options: "NarrowBand", "Broadband_OFDM", "Broadband_simple"
     mode = "coherent"           # signals nature, options: "non-coherent", "coherent"
     
     ## Array mis-calibration values
     eta = 0                     # Deviation from sensor location, normalized by wavelength, ideal = 0
-    geo_noise_var = 0         # Added noise for sensors response
+    geo_noise_var = 0           # Added noise for sensors response
     
     # simulation parameters
-    samples_size = 100000        # Overall dateset size 
+    samples_size = 60000         # Overall dateset size 
     train_test_ratio = 0.05     # training and testing datasets ratio 
     
     ############################
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     
     if commands["CREATE_DATA"]:
         set_unified_seed()
-        Create_Training_Data = False # Flag for creating training data
+        Create_Training_Data = True # Flag for creating training data
         Create_Testing_Data = True  # Flag for creating test data
         
         print("Creating Data...")
@@ -117,7 +118,7 @@ if __name__ == "__main__":
                                     N= N, M= M , T= T,
                                     Sampels_size = samples_size,
                                     tau = tau,
-                                    Save = False,
+                                    Save = True,
                                     DataSet_path = Main_Data_path + Data_Scenario_path + r"\TrainingData",
                                     True_DOA = None,
                                     SNR = SNR,
@@ -131,7 +132,7 @@ if __name__ == "__main__":
                                     N= N, M= M , T= T,
                                     Sampels_size = int(train_test_ratio * samples_size),
                                     tau = tau,
-                                    Save = False,
+                                    Save = True,
                                     DataSet_path= Main_Data_path + Data_Scenario_path + r"\TestData",
                                     True_DOA = None,
                                     SNR = SNR,
@@ -144,24 +145,24 @@ if __name__ == "__main__":
     
     if commands["LOAD_DATA"]:
         try:
-            train_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, samples_size, M, N,
+            TRAIN_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, samples_size, M, N,
                                     T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
-            test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
+            TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                     M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
 
-            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + train_details_line)
-            DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + train_details_line)
-            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
-            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + test_details_line)
-            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + test_details_line)
+            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+            DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
+            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
+            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
         except:
-            train_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, samples_size, M, N, T, SNR)
-            test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
-            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + train_details_line)
-            DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + train_details_line)
-            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + test_details_line)
-            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + test_details_line)
-            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + test_details_line)
+            TRAIN_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, samples_size, M, N, T, SNR)
+            TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
+            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+            DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
+            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
+            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
 
 
     ############################
@@ -170,9 +171,9 @@ if __name__ == "__main__":
     
     if commands["TRAIN_MODE"]:
         # Training aided parameters
-        optimal_lr = 0.00001        # Learning rate value
+        optimal_lr = 0.001          # Learning rate value
         optimal_bs = 2048           # Batch size value
-        epochs = 60                 # Number of epochs
+        epochs = 80                 # Number of epochs
         optimal_step = 1            # Number of steps for learning rate decay iteration
         optimal_gamma_val = 1       # learning rate decay value
 
@@ -186,11 +187,12 @@ if __name__ == "__main__":
         ############################
         ###    Run Simulation    ###
         ############################
- 
+
         print("\n--- New Simulation ---\n")
         # print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
         # print("Description: Simulation with constant {} deviation in sensors location, T = {}, SNR = {}, {} sources".format(eta, T, SNR, mode))
-        print("Description: Simulation geometry mis-matches with added noise to array response, variance = {} , T = {}, SNR = {}, {} sources".format(geo_noise_var, T, SNR, mode))
+        print("Description: Simulation geometry mis-matches with added noise to array response", end=" ")
+        print(f"variance = {geo_noise_var} , T = {T}, SNR = {SNR}, {mode} sources")
         print("Simulation parameters:")
         print("Learning Rate = {}".format(optimal_lr))
         print("Batch Size = {}".format(optimal_bs))
@@ -222,14 +224,15 @@ if __name__ == "__main__":
                         Sys_Model = Sys_Model,
                         load_flag = True,
                         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
-                        # loading_path = saving_path + r"\Final_models" + r"/model_16_03_2023_23_54",
-                        loading_path = saving_path + r"\Models" + r"/model_26_03_2023_02_49",
+                        loading_path = saving_path + r"\Models" + r"/model_11_04_2023_03_48",
+                        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(2, mode, tau, 10, 20),
                         Plot = False,
                         DataSetModelBased = DataSet_x_test)
         
         # Save model weights
         if commands["SAVE_MODEL"]:
-            torch.save(model.state_dict(), saving_path + r"/Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}_eta={}".format(M, mode, tau, SNR, T, eta, geo_noise_var))
+            torch.save(model.state_dict(), saving_path + r"/Final_models" \
+                       + r"/model_M={}_{}_Tau={}_SNR={}_T={}_eta={}".format(M, mode, tau, SNR, T, eta, geo_noise_var))
         
         train_loss_lists.append(loss_train_list)
         validation_loss_lists.append(loss_valid_list)
@@ -258,21 +261,23 @@ if __name__ == "__main__":
     if commands["EVALUATE_MODE"]:
         augmented_methods = ["music", "esprit"]
         subspace_methods = ["music", "esprit", "root-music"]
-        RootMUSIC_loss = []
+        # RootMUSIC_loss = []
         MUSIC_loss = []
-        SPS_RootMUSIC_loss = []
+        # SPS_RootMUSIC_loss = []
         SPS_MUSIC_loss = []
         DeepRootTest_loss = []
         if not (commands["CREATE_DATA"] or commands["LOAD_DATA"]):
-            test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR, eta)
-            test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
+            # TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), 3, N, T)
+            # TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
+            # TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR, eta)
+            TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                                                                                M, N, T, SNR, str(eta).replace(",", ""),
                                                                                                str(geo_noise_var).replace(",", ""))
-            # test_details_line = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
-            # test_details_line = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T)
-            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx" + test_details_line)
-            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"  + test_details_line)
-            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"  + test_details_line)
+            # TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
+            # TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T)
+            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx" + TEST_DATA_PATH)
+            DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"  + TEST_DATA_PATH)
+            Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"  + TEST_DATA_PATH)
         
         print("SNR = {}".format(SNR))
         print("scenario = {}".format(scenario))
@@ -286,63 +291,69 @@ if __name__ == "__main__":
         
         if not commands["TRAIN_MODE"]:
             if scenario.startswith("Broadband"):
-                loading_path = saving_path + r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(2, mode, tau, SNR, 200)
+                # loading_path = saving_path + r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+                loading_path = saving_path + r"\Models" + r"\model_11_04_2023_03_48"
+                # loading_path = r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights\Models\model_11_04_2023_03_48"
             else:
-                loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-                # loading_path = saving_path + r"\Models" + r"/model_04_03_2023_00_32"
+                pass
+                # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
                 # loading_path = saving_path + r"\Models" + r"/model_27_03_2023_21_46"
 
-            if T == 200 and SNR == 10 and (M==2 or M == 3) and eta == 0 and geo_noise_var == 0: 
-                model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
+            if T in [100, 200] and SNR == 10 and (M in [2, 3, 4]) and eta == 0 and geo_noise_var == 0 and not scenario.startswith("Broadband"): 
+                # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
+                model = Deep_Root_Net_AntiRectifier(tau=tau)                                    
             else:
                 model = Deep_Root_Net_AntiRectifier(tau=tau) 
                     
             # Load the model to the specified device, either gpu or cpu
             model = model.to(device)
             try:
-                if torch.cuda.is_available() == False:
+                if torch.cuda.is_available() is False:
                     model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
             except:
                 print("No loaded weights found")
                 pass
             
-        criterion = RMSPELoss() # define loss criterion
-        # criterion = MSPELoss() # define loss criterion
         Data_Set_path = Main_path + r"\\DataSet"
         DataSet_Rx_test = torch.utils.data.DataLoader(DataSet_Rx_test,
                                 batch_size=1,
                                 shuffle=False,
                                 drop_last=False)
-        
         DataSet_x_test = torch.utils.data.DataLoader(DataSet_x_test,
                                 batch_size=1,
                                 shuffle=False,
                                 drop_last=False)
-        
+
         mb = ModelBasedMethods(Sys_Model)
 
+        criterion = RMSPELoss() # define loss criterion
+        hybrid_criterion = RMSPE
+        # criterion = MSPELoss() # define loss criterion
+        # hybrid_criterion = MSPE
         # Evaluate SubspaceNet augmented methods
-        DeepRootTest_loss = evaluate_model(model, DataSet_Rx_test, criterion, plot_spec= True)     
-        print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))               
+        DeepRootTest_loss = evaluate_model(model, DataSet_Rx_test, criterion=criterion, plot_spec= True)
+        print(f"Deep Root-MUSIC Test loss = {DeepRootTest_loss}")
         for algorithm in augmented_methods:
-            hybrid_loss = evaluate_hybrid_model(model, DataSet_Rx_test, Sys_Model, criterion = RMSPE, algorithm = algorithm)
+            hybrid_loss = evaluate_hybrid_model(model, DataSet_Rx_test, Sys_Model, criterion = hybrid_criterion, algorithm = algorithm)
             print("hybrid {} test loss = {}".format(algorithm, hybrid_loss))
 
-        losses = evaluate_model_based(DataSet_x_test, Sys_Model)
+        losses = evaluate_model_based(DataSet_x_test, Sys_Model, criterion=hybrid_criterion)
         
         if scenario.startswith("Broadband"):
-            BB_MUSIC_loss, MUSIC_loss, ESPRIT_loss = losses
+            BB_MUSIC_loss, MUSIC_loss, ESPRIT_loss, RootMUSIC_loss = losses
             print("BB MUSIC Test loss = {}".format(BB_MUSIC_loss))
             print("MUSIC Test loss = {}".format(MUSIC_loss))
             print("ESPRIT Test loss = {}".format(ESPRIT_loss))
-        
+            print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
+
         elif scenario.startswith("NarrowBand"):
-            RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, ESPRIT_loss= losses
+            (RootMUSIC_loss, MUSIC_loss, SPS_RootMUSIC_loss, SPS_MUSIC_loss, ESPRIT_loss, SPS_ESPRIT_loss) = losses
             print("MUSIC Test loss = {}".format(MUSIC_loss))
             print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
             print("ESPRIT Test loss = {}".format(ESPRIT_loss))
             print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
             print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss))
+            print("Spatial Smoothing ESPRIT Test loss = {}".format(SPS_ESPRIT_loss))
         print("end")
-    plt.legend()
-    plt.show()
+    # plt.legend()
+    # plt.show()

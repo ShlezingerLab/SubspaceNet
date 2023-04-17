@@ -50,7 +50,7 @@ class System_model(object):
     def create_array(self):
         self.array = np.linspace(0, self.N, self.N, endpoint = False)   # create array of sensors locations
     
-    def SV_Creation(self, theta:np.ndarray, f:float=1, array_form= "ULA",
+    def steering_vec(self, theta:np.ndarray, f:float=1, array_form= "ULA",
                             eta:float = 0, geo_noise_var:float = 0):
         if self.scenario.startswith("NarrowBand"):
             f = 1

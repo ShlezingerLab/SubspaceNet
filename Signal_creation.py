@@ -12,11 +12,12 @@ def create_DOA_with_gap(M:int, gap:float) :
         np.ndarray: Doa array
     """
     while(True):
-        DOA = np.round(np.random.rand(M) *  180 ,decimals = 2) - 90.00
+        DOA = np.round(np.random.rand(M) *  180 ,decimals = 2) - 90
         DOA.sort()
         difference_between_angles = np.array([np.abs(DOA[i+1] - DOA[i]) for i in range(M-1)])
         if(np.sum(difference_between_angles > gap) == M - 1 and np.sum(difference_between_angles < (180 - gap)) == M - 1):
             break
+    # print(DOA)
     return DOA
 
 def create_closely_spaced_DOA(M:int, gap:float):
@@ -30,7 +31,7 @@ def create_closely_spaced_DOA(M:int, gap:float):
         np.ndarray: _description_
     """
     if (M == 2):
-        first_DOA = np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00
+        first_DOA = np.round(np.random.rand(1) *  160 ,decimals = 2) - 80.00
         second_DOA = ((first_DOA + gap + 90 ) % 180) - 90
         return np.array([first_DOA, second_DOA])
     DOA = [np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00]
@@ -82,7 +83,7 @@ class Samples(System_model):
         if self.scenario.startswith("NarrowBand"):
             signal = self.signal_creation(mode, S_mean, S_Var, SNR)
             noise = self.noise_creation(N_mean, N_Var)
-            A = np.array([self.SV_Creation(theta, eta=eta, geo_noise_var=geo_noise_var) for theta in self.DOA]).T
+            A = np.array([self.steering_vec(theta, eta=eta, geo_noise_var=geo_noise_var) for theta in self.DOA]).T
             
             samples = (A @ signal) + noise 
             return samples, signal, A, noise
@@ -104,7 +105,7 @@ class Samples(System_model):
                     f = - int(self.f_sampling) + idx
                 else:
                     f = idx
-                A = np.array([self.SV_Creation(theta, f) for theta in self.DOA]).T
+                A = np.array([self.steering_vec(theta, f) for theta in self.DOA]).T
                 samples.append((A @ signal[:, idx]) + noise[:, idx])
                 # samples.append((A @ signal[:, idx % (int(self.f_sampling) // 2)]) + noise[:, idx])
                 # samples.append((A @ signal[:, f]) + noise[:, idx])
