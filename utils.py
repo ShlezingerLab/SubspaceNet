@@ -1,12 +1,28 @@
+"""Subspace-Net 
+Details
+----------
+Name: utils.py
+Authors: D. H. Shmuel
+Created: 01/10/21
+Edited: 17/03/23
+
+Purpose
+----------
+This script defines some helpful functions:
+    * sum_of_diag: returns the some of each diagonal in a given matrix 
+    * find_roots: solves polynomial equation defines by polynomial coefficients 
+    * set_unified_seed: Sets unified seed for all random attributed in the simulation
+"""
+
 import numpy as np
 import torch
 import random
 
-def sum_of_diag(Matrix):
+def sum_of_diag(matrix:np.ndarray) -> list:
     coeff = []
-    diag_index = np.linspace(-Matrix.shape[0] + 1, Matrix.shape[0] + 1, 2 * Matrix.shape[0] - 1, endpoint = False, dtype = int)
+    diag_index = np.linspace(-matrix.shape[0] + 1, matrix.shape[0] + 1, 2 * matrix.shape[0] - 1, endpoint = False, dtype = int)
     for idx in diag_index:
-        coeff.append(np.sum(Matrix.diagonal(idx)))
+        coeff.append(np.sum(matrix.diagonal(idx)))
     return coeff
     
 def find_roots(coeff):
@@ -15,8 +31,13 @@ def find_roots(coeff):
     A[0,:] = -coeff[1:] / coeff[0]
     roots = np.array(np.linalg.eigvals(A))
     return roots
-
-def Set_Overall_Seed(SeedNumber = 42):
-    random.seed(SeedNumber)
-    np.random.seed(SeedNumber)
-    torch.manual_seed(SeedNumber)
+    
+def set_unified_seed(seed:int = 42):
+    """Sets unified seed for all random attributed in the simulation
+    
+    Args:
+        seed (int, optional): seed value. Defaults to 42.
+    """    
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)

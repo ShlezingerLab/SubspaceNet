@@ -2,18 +2,36 @@ import numpy as np
 from matplotlib import pyplot as plt
 from System_Model import *
 
-def create_DOA_with_gap(M, gap):
+def create_DOA_with_gap(M:int, gap:float) :        
+    """Create sources with minimal gap value for simulations
+    Args:
+        M (int): number of sources
+        gap (float): minimal gap value
+
+    Returns:
+        np.ndarray: Doa array
+    """
     while(True):
-        DOA = np.round(np.random.rand(M) *  180 ,decimals = 2) - 90.00
+        DOA = np.round(np.random.rand(M) *  180 ,decimals = 2) - 90
         DOA.sort()
         difference_between_angles = np.array([np.abs(DOA[i+1] - DOA[i]) for i in range(M-1)])
         if(np.sum(difference_between_angles > gap) == M - 1 and np.sum(difference_between_angles < (180 - gap)) == M - 1):
             break
+    # print(DOA)
     return DOA
 
-def create_closely_spaced_DOA(M, gap):
+def create_closely_spaced_DOA(M:int, gap:float):
+    """Create closely spaced sources scenario with minimal gap value for simulations
+
+    Args:
+        M (int): _description_
+        gap (float): _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
     if (M == 2):
-        first_DOA = np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00
+        first_DOA = np.round(np.random.rand(1) *  160 ,decimals = 2) - 80.00
         second_DOA = ((first_DOA + gap + 90 ) % 180) - 90
         return np.array([first_DOA, second_DOA])
     DOA = [np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00]
@@ -25,6 +43,28 @@ def create_closely_spaced_DOA(M, gap):
     return np.array(DOA)
 
 class Samples(System_model):
+    '''
+    Class used for defining and creating signals and observations.
+    inherit from SystemModel class
+    ...
+
+    Attributes
+    ----------
+    says_str : str
+        a formatted string to print out what the animal says
+    name : str
+        the name of the animal
+    sound : str
+        the sound that the animal makes
+    num_legs : int
+        the number of legs the animal has (default 4)
+
+    Methods
+    -------
+    says(sound=None)
+        Prints the animals name and what sound it makes
+    '''
+    
     def __init__(self, scenario:str , N:int, M:int,
                  DOA:list, observations:int, freq_values:list = None):
         super().__init__(scenario, N, M, freq_values)
@@ -34,7 +74,7 @@ class Samples(System_model):
         else: 
           self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
     
-    def samples_creation(self, mode, N_mean= 0, N_Var= 1, S_mean= 0, S_Var= 1, SNR= 10):
+    def samples_creation(self, mode, N_mean= 0, N_Var= 1, S_mean= 0, S_Var= 1, SNR= 10, eta = 0, geo_noise_var = 0):
         '''
         @mode = represent the specific mode in the specific scenario
                 e.g. "Broadband" scenario in "non-coherent" mode
@@ -43,7 +83,7 @@ class Samples(System_model):
         if self.scenario.startswith("NarrowBand"):
             signal = self.signal_creation(mode, S_mean, S_Var, SNR)
             noise = self.noise_creation(N_mean, N_Var)
-            A = np.array([self.SV_Creation(theta) for theta in self.DOA]).T
+            A = np.array([self.steering_vec(theta, eta=eta, geo_noise_var=geo_noise_var) for theta in self.DOA]).T
             
             samples = (A @ signal) + noise 
             return samples, signal, A, noise
@@ -65,7 +105,7 @@ class Samples(System_model):
                     f = - int(self.f_sampling) + idx
                 else:
                     f = idx
-                A = np.array([self.SV_Creation(theta, f) for theta in self.DOA]).T
+                A = np.array([self.steering_vec(theta, f) for theta in self.DOA]).T
                 samples.append((A @ signal[:, idx]) + noise[:, idx])
                 # samples.append((A @ signal[:, idx % (int(self.f_sampling) // 2)]) + noise[:, idx])
                 # samples.append((A @ signal[:, f]) + noise[:, idx])
