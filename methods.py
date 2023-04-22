@@ -10,13 +10,13 @@ import os
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class ModelBasedMethods(object):
-    def __init__(self, System_model):
-        """_summary_
+    def __init__(self, System_model: System_model):
+        """Class for initializing the model based doa estimation methods  
 
         Args:
-            System_model (_type_): _description_
+            System_model (): 
         """        
-        self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 1080, endpoint=False)                        # angle axis for representation of the MUSIC spectrum
+        self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for representation of the MUSIC spectrum
         self.system_model = System_model
         self.M = System_model.M
         self.N = System_model.N
@@ -98,9 +98,9 @@ class ModelBasedMethods(object):
         
         Output:
         --------------------------------------------
-        @ DOA_pred = the predicted DOA's
-        @ Spectrum = the MUSIC spectrum
-        @ M = number of estimated/given sources
+        DOA_pred: the predicted DOA's
+        Spectrum: the MUSIC spectrum
+        M: number of estimated/given sources
         
         '''
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
@@ -211,7 +211,7 @@ class ModelBasedMethods(object):
         Spectrum = 1 / Spectrum_equation
         return Spectrum, Spectrum_equation
     
-    def clustering(eigenvalues):
+    def clustering(self, eigenvalues):
         """_summary_
 
         Args:

@@ -190,16 +190,27 @@ def scenario_to_plot(simulation, conv_method=unit, mode = "non-coherent", T = 20
     ###### BroadBand simulation  #####
     elif simulation.startswith("OFDM"):
         x_axis["Observations"] = [50, 100, 200, 500, 1000]
-        if RMSPE:
-            Loss["SubNet+R-MUSIC"]  = np.array([0.088 , 0.056 ,0.0517, 0.0428, 0.0239])
-            Loss["SubNet+MUSIC"]    = np.array([0.1221, 0.09302, 0.07762, 0.06227, 0.05966])
-            Loss["SubNet+ESPRIT"]   = np.array([0.086 , 0.0604 , 0.05605 ,0.0466, 0.0436])
-            Loss["BB-MUSIC"]        = np.array([0.22733, 0.18433 ,0.1549, 0.125, 0.121])
-            # Loss["MUSIC"]           = np.array([0.5207, 0.5297, 0.533782,0.5572, 0.5687])
-            # Loss["ESPRIT"]          = np.array([0.533725, 0.559649, 0.5805,0.6094, 0.6131])
-            # Loss["R-MUSIC"]         = np.array([0.537, 0.54728, 0.55966, 0.59487, 0.600])
-            # Loss["DA-MUSIC"]        = np.array([0.192, 0.125, 0.073 ,0.074])
-            # Add here music and hybrid music
+        if mode is "non-coherent":            
+            if RMSPE:
+                Loss["SubNet+R-MUSIC"]  = np.array([0.088 , 0.056 ,0.0517, 0.0428, 0.0239])
+                Loss["SubNet+MUSIC"]    = np.array([0.1221, 0.09302, 0.07762, 0.06227, 0.05966])
+                Loss["SubNet+ESPRIT"]   = np.array([0.086 , 0.0604 , 0.05605 ,0.0466, 0.0436])
+                Loss["BB-MUSIC"]        = np.array([0.22733, 0.18433 ,0.1549, 0.125, 0.121])
+                Loss["MUSIC"]           = np.array([0.5207, 0.5297, 0.533782,0.5572, 0.5687])
+                Loss["ESPRIT"]          = np.array([0.533725, 0.559649, 0.5805,0.6094, 0.6131])
+                Loss["R-MUSIC"]         = np.array([0.537, 0.54728, 0.55966, 0.59487, 0.600])
+                # Loss["DA-MUSIC"]        = np.array([0.192, 0.125, 0.073 ,0.074])
+        elif mode is "coherent":            
+            if RMSPE:
+                Loss["SubNet+R-MUSIC"]  = np.array([0.0704 ,0.0520 ,0.0445 ,0.0284, 0.0268])
+                Loss["SubNet+MUSIC"]    = np.array([0.0974 ,0.0938 ,0.0916 ,0.0868, 0.0845])
+                Loss["SubNet+ESPRIT"]   = np.array([0.0781 ,0.0671 ,0.0600 ,0.0454, 0.0444])
+                Loss["BB-MUSIC"]        = np.array([0.2417 ,0.2078 ,0.1836 ,0.2104, 0.2802])
+                # Loss["MUSIC"]           = np.array([0.5176 ,0.5118 ,0.5077 ,0.5069, 0.5088])
+                # Loss["ESPRIT"]          = np.array([0.5478 ,0.5714 ,0.6031 ,0.6307, 0.6582])
+                # Loss["R-MUSIC"]         = np.array([0.5370 ,0.5399 ,0.5569 ,0.5746, 0.6019])
+                # Loss["DA-MUSIC"]        = np.array([0.192, 0.125, 0.073 ,0.074])
+        # Add here music and hybrid music
 
     ###### mis-calibration simulations  ######
     elif simulation.startswith("distance_calibration"):
@@ -268,11 +279,9 @@ def plot(x_axis, Loss, conv_method, algorithm="all"):
 
 if __name__ == "__main__":
     # scenario_to_plot(simulation="distance_calibration")
-    T = 20
-    mode = "non-coherent"
-    simulation = "distance_calibration"
+    # T = 20
+    # mode = "non-coherent"
     # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=rad2dB, mode=mode, T = T)
-    x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit, mode=mode, T = T)
 
     ## ESPRIT
     # algorithm="ESPRIT"
@@ -304,8 +313,6 @@ if __name__ == "__main__":
     # plt.savefig("{}_T={}_{}_{}.pdf".format(simulation, T, mode, algorithm),bbox_inches='tight')
 
     ## All
-    algorithm="all"
-    plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
     # plt.xlim([-5.1, -0.9])
     # plt.xlim([4.9, 10.1])
     # plt.xlim([4.9, 10.1])
@@ -330,9 +337,30 @@ if __name__ == "__main__":
     
     ## distance_calibration
     # plt.xlim([4.9, 10.1])
-    plt.xlabel(r"$\eta [\lambda / 2]$")
-    plt.ylim([0.015, 0.27])
-    plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
+    
+    ########################################################
+    # simulation = "distance_calibration"
+    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit)
+    # algorithm="all"
+    # plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
+    # plt.xlabel(r"$\eta [\lambda / 2]$")
+    # plt.ylim([0.015, 0.27])
+    # plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
+    ########################################################
+
+    ########################################################
+    mode = "coherent"
+    simulation = "OFDM"
+    x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit, mode=mode)
+    algorithm="all"
+    plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
+    # plt.xlabel(r"$\eta [\lambda / 2]$")
+    plt.xlim([47, 1050])
+    plt.xscale("log", base=10)
+    # plt.ylim([0.02, 0.68])
+    plt.ylim([0.02, 0.29])
+    plt.savefig("{}_{}_no_narrowband.pdf".format(simulation, algorithm),bbox_inches='tight')
+    ########################################################
     
     
     
