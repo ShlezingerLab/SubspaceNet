@@ -85,21 +85,21 @@ class ModelBasedMethods(object):
         DOA_pred_all = (180 / np.pi) * DOA_pred_all                                     # Convert from radians to Deegres
         return DOA_pred, roots, M, DOA_pred_all, roots_angels_all
         
-    def MUSIC(self, X, NUM_OF_SOURCES, SPS=False, sub_array_size=0, DR=False, scenario='NarrowBand'):
+    def MUSIC(self, X, NUM_OF_SOURCES=True, SPS=False, sub_array_size=0, DR=False, scenario='NarrowBand'):
         '''
         Implementation of the model-based MUSIC algorithm in Narrow-band scenario.
         
         Input:
-        --------------------------------------------
+        ------
         X = samples vector shape : Nx1
         NUM_OF_SOURCES = known number of sources flag
         SPS = pre-processing Spatial smoothing algorithm flag
         sub_array_size = size of sub array for spatial smoothing
         
-        Output:
-        --------------------------------------------
+        Returns:
+        --------
         DOA_pred: the predicted DOA's
-        Spectrum: the MUSIC spectrum
+        spectrum: the MUSIC spectrum
         M: number of estimated/given sources
         
         '''
@@ -134,28 +134,30 @@ class ModelBasedMethods(object):
             f = 500 
         else:
             f = 1
-        Spectrum, _ = self.spectrum_calculation(Un, f = f)
-        DOA_pred, _ = scipy.signal.find_peaks(Spectrum)                         # Find maximal values in spectrum
+        spectrum, _ = self.spectrum_calculation(Un, f = f)
+        DOA_pred, _ = scipy.signal.find_peaks(spectrum)                         # Find maximal values in spectrum
         DOA_pred = list(DOA_pred)
-        DOA_pred.sort(key = lambda x: Spectrum[x], reverse = True)
-        return DOA_pred, Spectrum, M                                                    # return estimated DOA
+        DOA_pred.sort(key = lambda x: spectrum[x], reverse = True)
+        return DOA_pred, spectrum, M                                                    # return estimated DOA
 
     def root_music(self, X, NUM_OF_SOURCES=True, SPS=False, sub_array_size=0):
         '''
         Implementation of the model-based Root-MUSIC algorithm in Narrow-band scenario.
         
         Input:
-        @ X = samples vector shape : Nx1
-        @ NUM_OF_SOURCES = known number of sources flag
-        @ SPS = pre-processing Spatial smoothing algorithm flag
-        @ sub_array_size = size of sub array for spatial smoothing
+        ------
+        X = samples vector shape : Nx1
+        NUM_OF_SOURCES = known number of sources flag
+        SPS = pre-processing Spatial smoothing algorithm flag
+        sub_array_size = size of sub array for spatial smoothing
         
-        Output:
-        @ DOA_pred = the predicted DoA's
-        @ roots = the roots of true DoA's 
-        @ M = number of estimated/given sources
-        @ roots_angels_all = all the roots produced by the algorithm
-        @ DOA_pred_all = all the angels produced by the algorithm 
+        Returns:
+        --------
+        DOA_pred = the predicted DoA's
+        roots = the roots of true DoA's 
+        M = number of estimated/given sources
+        roots_angels_all = all the roots produced by the algorithm
+        DOA_pred_all = all the angels produced by the algorithm 
         '''
         if NUM_OF_SOURCES:                                                              # NUM_OF_SOURCES = TRUE : number of sources is given
             M = self.M
@@ -208,8 +210,8 @@ class ModelBasedMethods(object):
             a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(np.conj(a).T @ Un @ np.conj(Un).T @ a)
         Spectrum_equation = np.array(Spectrum_equation, dtype=complex)
-        Spectrum = 1 / Spectrum_equation
-        return Spectrum, Spectrum_equation
+        spectrum = 1 / Spectrum_equation
+        return spectrum, Spectrum_equation
     
     def clustering(self, eigenvalues):
         """_summary_
@@ -239,7 +241,7 @@ class ModelBasedMethods(object):
     
     Output:
     @ DOA_pred = the predicted DOA's
-    @ Spectrum = the MUSIC spectrum
+    @ spectrum = the MUSIC spectrum
     @ M = number of estimated/given sources
 
         '''
@@ -263,17 +265,17 @@ class ModelBasedMethods(object):
             f = 500 
         else:
             f = 1
-        Spectrum, _ = self.spectrum_calculation(Un, f = f)
+        spectrum, _ = self.spectrum_calculation(Un, f = f)
 
         # Find peaks in the spectrum
-        DOA_pred, _ = scipy.signal.find_peaks(Spectrum)
+        DOA_pred, _ = scipy.signal.find_peaks(spectrum)
 
         # Associate highest peaks with the DOA predictions
         DOA_pred = list(DOA_pred)
-        DOA_pred.sort(key = lambda x: Spectrum[x], reverse = True)
+        DOA_pred.sort(key = lambda x: spectrum[x], reverse = True)
 
         # return estimated DOA, spectrum and number of sources
-        return DOA_pred, Spectrum, M
+        return DOA_pred, spectrum, M
     
     def esprit(self, X, NUM_OF_SOURCES:bool=True, SPS:bool=False, sub_array_size=0,
                HYBRID = False, model_ESPRIT=None, Rz=None, scenario='NarrowBand'):
@@ -374,12 +376,19 @@ class ModelBasedMethods(object):
         
             ## BeamForming response calculation 
             R_inv = np.linalg.inv(R_eps_MVDR)
-            a = self.system_model.steering_vec(theta = angle, f= 1, array_form = "ULA").reshape((self.N,1))
+            if scenario.startswith("Broadband"):
+            # hard-coded for OFDM scenario within range [0-500] Hz
+                f = 500 
+            else:
+                f = 1
+            a = self.system_model.steering_vec(theta = angle, f= f, array_form = "ULA").reshape((self.N,1))
             
             ## Adaptive calculation of W_opt
             W_opt = (R_inv @ a) / (np.conj(a).T @ R_inv @ a)
+            # W_opt = 1 / (np.conj(a).T @ R_inv @ a)
             
-            response_curve.append(np.asscalar((np.conj(W_opt).T @ R_eps_MVDR @ W_opt).reshape((1))))
+            response_curve.append(((np.conj(W_opt).T @ R_eps_MVDR @ W_opt).reshape((1))).item())
+            # response_curve.append(W_opt.item())
             
-        response_curve = np.array(response_curve, dtype=np.complex)
+        response_curve = np.array(response_curve, dtype=complex)
         return response_curve

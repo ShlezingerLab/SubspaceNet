@@ -48,8 +48,6 @@ class Deep_Root_Net(nn.Module):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
             Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
-            # Un = eigenvectors[:, M:]
-            # Un = eigenvectors[:, M:]
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -62,18 +60,13 @@ class Deep_Root_Net(nn.Module):
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred_test = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                 # Calculate the DOA our of the phase component
             roots_to_return = roots
-            
-            # print("abs(roots)", abs(roots)-1)
-            # print("DOA_pred_test", DOA_pred_test * 180 / np.pi)
-            
+
             mask = (torch.abs(roots) - 1) < 0
             roots = roots[mask][:M]
-            # indices = torch.nonzero(mask
-            # print("abs(roots)", abs(roots)-1)
 
             
             
-            # roots = [root for root in roots if (abs(root) - 1) < 0][:M]
+            
             # roots = roots[:2 * M:2]                                                                 # Take the M most closest to the unit circle roots
             roots_angels = torch.angle(roots)                                                       # Calculate the phase component of the roots 
             DOA_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)                      # Calculate the DOA our of the phase component
@@ -181,7 +174,6 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
             Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
-            # Un = eigenvectors[:, M:]
             F = torch.matmul(Un, torch.t(torch.conj(Un)))                                           # Set F as the matrix conatains Information, 
             coeff = self.sum_of_diags(F)                                                            # Calculate the sum of the diagonals of F
             roots = self.find_roots(coeff)                                                          # Calculate its roots
@@ -317,9 +309,9 @@ class Deep_Augmented_MUSIC(nn.Module):
             a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(torch.conj(a).T @ Un @ torch.conj(Un).T @ a)
         Spectrum_equation = torch.stack(Spectrum_equation, dim=0)
-        Spectrum = torch.abs(1 / Spectrum_equation)
+        spectrum = torch.abs(1 / Spectrum_equation)
         
-        return Spectrum, Spectrum_equation
+        return spectrum, Spectrum_equation
 
     def pre_MUSIC(self, Rz):
         spectrum = []

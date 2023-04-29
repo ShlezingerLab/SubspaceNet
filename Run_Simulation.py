@@ -25,6 +25,7 @@ from utils import *
 from criterions import *
 
 R2D = 180 / np.pi 
+D2R = 1 / R2D 
 
 warnings.simplefilter("ignore")
 plt.close('all')
@@ -45,7 +46,7 @@ def run_simulation(Model_Train_DataSet,
                     ActivationVal = 0.5,
                     checkpoint_optimizer_path = None,
                     load_flag = False, loading_path = None,
-                    Plot = True, DataSetModelBased = None,
+                    Plot = True, dataset_mb = None,
                     Plot_Spectrum_flag = False,
                     saving_path = saving_path):
   
@@ -66,15 +67,15 @@ def run_simulation(Model_Train_DataSet,
 
     ## Transform model-based test dataset into DataLoader Object:
     '''
-    if DataSetModelBased != None:
+    if dataset_mb != None:
       print("Test_DataSet", len(Model_Test_DataSet))
-      DataSetModelBased = torch.utils.data.DataLoader(DataSetModelBased,
+      dataset_mb = torch.utils.data.DataLoader(dataset_mb,
                                 batch_size=1,
                                 shuffle=False,
                                 drop_last=False)
       
     ## Compute MUSIC and Root-MUSIC algorithms overall loss:
-      MUSIC_loss = evaluate_model_based(DataSetModelBased, Sys_Model)
+      MUSIC_loss = evaluate_model_based(dataset_mb, Sys_Model)
       # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
       # print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
       print("MUSIC Test loss = {}".format(MUSIC_loss))
@@ -193,7 +194,7 @@ def train_model(model, Train_data, Valid_data,
         
         for i, data in enumerate(Train_data):
             Rx, DOA = data
-            # print("DOA", DOA * 180 / np.pi)
+            # print("DOA", DOA * R2D)
             train_length += DOA.shape[0]
             Rx = Variable(Rx, requires_grad=True).to(device)
             DOA = Variable(DOA, requires_grad=True).to(device)
@@ -300,7 +301,7 @@ def plot_learning_curve(epoch_list, train_loss, Validation_loss):
     plt.legend(loc='best')
     plt.show()
 
-def evaluate_model(model, Data, criterion, plot_spec = False):
+def evaluate_model(model, Data, criterion, plot_spec = False, figures = None):
     loss = 0.0
     model.eval()
     test_length = 0
@@ -316,17 +317,20 @@ def evaluate_model(model, Data, criterion, plot_spec = False):
             loss += eval_loss.item()                                          # add the batch evaluation loss to epoch loss  
         loss = loss / test_length
     if plot_spec:
+      DOA_all = model_parameters[1]
       roots = model_parameters[2]
-      sorted_angels = model_parameters[-1]
-      # plot_spectrum(DOA_prediction=sorted_angels * R2D, true_DOA=DOA * R2D, roots=roots, algorithm="root_music")
+      plot_spectrum(DOA_prediction=DOA_all * R2D, true_DOA=DOA[0] * R2D, roots=roots,
+                    algorithm="SubNet+R-MUSIC", figures=figures)
     return loss
 
-def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE, model_name=None, algorithm = "music"):
+def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE,
+    model_name=None, algorithm = "music", plot_spec = False, figures = None):
   # Initialize parameters for evaluation
   mb = ModelBasedMethods(Sys_Model)
-  hybrid_loss = {"music":[], "esprit" :[]}   
+  hybrid_loss = [] 
   model_hybrid.eval()
-  with torch.no_grad():   # gradients calculation isn't required for evaluation
+  # Gradients calculation isn't required for evaluation
+  with torch.no_grad():   
     for i, data in enumerate(Data):
       Rx, DOA = data
       Rx = Rx.to(device)
@@ -334,219 +338,189 @@ def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE, mode
             
       ## Hybrid MUSIC
       if algorithm.startswith("music"):
-        DOA_pred, Spectrum, M = mb.hybrid_MUSIC(model_hybrid, Rx, Sys_Model.scenario)
-        DOA_pred = mb.angels[DOA_pred] * 180 / np.pi                                   # Convert from Radians to Degrees
-        predicted_DOA = DOA_pred[:M][::-1]
-      # plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, Sys_Model=Sys_Model, Spectrum=Spectrum, algorithm="music")
+        DOA_pred, spectrum, M = mb.hybrid_MUSIC(model_hybrid, Rx, Sys_Model.scenario)
+        DOA_pred = mb.angels[DOA_pred] * R2D
+        # Take the first M predictions
+        predicted_DOA = DOA_pred[:M][::-1]  
+        while(predicted_DOA.shape[0] < M):
+          print("Cant estimate M sources - hybrid {}".format(algorithm))
+          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)   
+        # Calculate loss criterion
+        loss = criterion(predicted_DOA, DOA * R2D)
+        hybrid_loss.append(loss)
+        if plot_spec and i == len(Data.dataset) - 1:
+          figures["music"]["norm factor"] = np.max(spectrum)
+          plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, Sys_Model=Sys_Model,
+                        spectrum=spectrum, algorithm="SubNet+MUSIC", figures=figures)
         
       ## Hybrid ESPRIT
-      if algorithm.startswith("esprit"):
-        predicted_DOA, M = mb.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=Sys_Model.scenario)                                # Convert from Radians to Degrees
-
-      while(predicted_DOA.shape[0] < M):
-        print("Cant estimate M sources - hybrid {}".format(algorithm))
-        predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)   
-      loss = criterion(predicted_DOA, DOA * 180 / np.pi)
-      hybrid_loss[algorithm].append(loss)
+      elif algorithm.startswith("esprit"):
+        predicted_DOA, M = mb.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=Sys_Model.scenario)
+        while(predicted_DOA.shape[0] < M):
+          print("Cant estimate M sources - hybrid {}".format(algorithm))
+          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)   
+        loss = criterion(predicted_DOA, DOA * R2D)
+        hybrid_loss.append(loss)
+        # if plot_spec and i == len(Data.dataset) - 1: 
+          # plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, Sys_Model=Sys_Model, spectrum=spectrum, algorithm=algorithm)
             
       ## Hybrid MVDR
-      if algorithm.startswith("mvdr"):
+      elif algorithm.startswith("mvdr"):
+        # mb.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 3600, endpoint=False)
         MVDR_spectrum = mb.MVDR(X=None, HYBRID = True, model_mvdr=model_hybrid, Rz=Rx, scenario=Sys_Model.scenario)
-        plot_spectrum(DOA_prediction=None, true_DOA=None, Sys_Model=Sys_Model, Spectrum=MVDR_spectrum, algorithm="mvdr")
-    
-    # ang = mb.angels * 180 / np.pi
-    # # plt.title("Normalized Spectrum of Hybrid MUSIC & SPS MUSIC vs MUSIC")
-    # plt.title("Normalized Spectrum of Hybrid MUSIC & MUSIC & Broadband MUSIC")
-    # # plt.title("Hybrid MUSIC vs MUSIC for non-ideal Scenario")
-    # plt.plot(ang, Spectrum / np.max(Spectrum), label="Hybrid MUSIC")
-    # # plt.plot(ang, Spectrum, label="Hybrid MUSIC")
-    # Spectrum = list(Spectrum)
-    # # plt.bar(np.squeeze(DOA * 180 / np.pi), [1, 1], color ='red',width = 0.3, label="True DOA")
-    # plt.bar(np.squeeze(DOA * 180 / np.pi), [np.max(Spectrum), np.max(Spectrum), np.max(Spectrum)], color ='red',width = 0.3, label="True DOA")
-    # plt.xlabel("Angels")
-    # plt.ylabel("Amplitude")
-  return np.mean(hybrid_loss[algorithm])
+        if plot_spec and i == len(Data.dataset) - 1:
+          figures["mvdr"]["norm factor"] = np.max(MVDR_spectrum)
+          plot_spectrum(DOA_prediction=None, true_DOA=DOA * R2D, Sys_Model=Sys_Model, spectrum=MVDR_spectrum, algorithm="SubNet+MVDR", figures=figures)
+        hybrid_loss = 0
+      
+      else:
+        return None
+  return np.mean(hybrid_loss)
 
-def evaluate_model_based(DataSetModelBased, Sys_Model, criterion=RMSPE):
-  RootMUSIC_list = []
-  lossESPRIT_list = []
-  SPS_RootMUSIC_list = []
-  SPS_ESPRIT_list = []
-  BB_MUSIC_list = []
-  MUSIC_list = []
-  SPS_MUSIC_list = []
+
+def evaluate_model_based(dataset_mb, Sys_Model, criterion=RMSPE, plot_spec=False, algorithm="music", figures=None):
+  loss_list = []
   mb = ModelBasedMethods(Sys_Model)
+  for i, data in enumerate(dataset_mb):
+    X, doa = data
+    X = X[0]
+    # TODO: unify BB music and music under the same method
+    ### Root-MUSIC algorithms ###
+    if "r-music" in algorithm:
+      if algorithm.startswith("sps"):
+        DOA_pred, roots, M, DOA_pred_all, _ = mb.root_music(X, NUM_OF_SOURCES=True,
+                SPS=True, sub_array_size=int(mb.N / 2) + 1)
+      else:
+        DOA_pred, roots, M, DOA_pred_all, _ = mb.root_music(X, NUM_OF_SOURCES=True)
+      # if algorithm cant estimate M sources, randomize angels
+      while(DOA_pred.shape[0] < M):
+        print(f"{algorithm}: cant estimate M sources")
+        DOA_pred = np.insert(DOA_pred, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
+      loss = criterion(DOA_pred, doa * R2D)
+      loss_list.append(loss)
+      if plot_spec and i == len(dataset_mb.dataset) - 1:
+        plot_spectrum(DOA_prediction=DOA_pred_all, true_DOA=doa[0] * R2D, roots=roots,
+                      algorithm=algorithm.upper(), figures= figures)
+    ### MUSIC algorithms ###
+    elif "music" in algorithm:
+      if algorithm.startswith("bb"):
+        DOA_pred, MUSIC_Spectrum, M = mb.broadband_MUSIC(X)
+      elif algorithm.startswith("sps"):
+        DOA_pred, MUSIC_Spectrum, M = mb.MUSIC(X, NUM_OF_SOURCES=True,
+                                      SPS=True, sub_array_size=int(mb.N / 2) + 1)
+      elif algorithm.startswith("music"):
+            DOA_pred, MUSIC_Spectrum, M = mb.MUSIC(X, scenario=Sys_Model.scenario)
+      
+      DOA_pred = mb.angels[DOA_pred] * R2D  # Convert from radians to degrees
+      predicted_DOA = DOA_pred[:M][::-1]  # Take First M predictions
+      # if algorithm cant estimate M sources, randomize angels
+      while(predicted_DOA.shape[0] < M):
+        print(f"{algorithm}: cant estimate M sources")
+        predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
+      loss = criterion(predicted_DOA, doa * R2D)
+      loss_list.append(loss)
+      # plot BB-MUSIC spectrum
+      if plot_spec and i == len(dataset_mb.dataset) - 1:
+        plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=doa * R2D,
+              Sys_Model=Sys_Model, spectrum=MUSIC_Spectrum, algorithm=algorithm.upper(), figures=figures)
+    
+    ### ESPRIT algorithms ###
+    elif "esprit" in algorithm:
+      if algorithm.startswith("sps"):
+        DOA_pred, M = mb.esprit(X, NUM_OF_SOURCES=True, SPS=True, sub_array_size=int(mb.N / 2) + 1)
+      else:
+        DOA_pred, M = mb.esprit(X, NUM_OF_SOURCES=True, scenario=Sys_Model.scenario)
+      # if algorithm cant estimate M sources, randomize angels
+      while(DOA_pred.shape[0] < M):
+        print(f"{algorithm}: cant estimate M sources")
+        DOA_pred = np.insert(DOA_pred, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
+      loss = criterion(DOA_pred, doa * R2D)
+      loss_list.append(loss)
+
+    # MVDR evaluation
+    elif algorithm.startswith("mvdr"):
+      MVDR_spectrum = mb.MVDR(X=X, scenario=Sys_Model.scenario)
+      if plot_spec and i == len(dataset_mb.dataset) - 1:
+        plot_spectrum(DOA_prediction=None, true_DOA=doa * R2D, Sys_Model=Sys_Model,
+                      spectrum=MVDR_spectrum, algorithm=algorithm.upper(), figures= figures)
+  return np.mean(loss_list)
+
+
+def plot_spectrum(DOA_prediction, true_DOA, Sys_Model=None, spectrum=None, roots=None,
+                  algorithm="music", figures = None):
+  if isinstance(DOA_prediction, (np.ndarray, list, torch.Tensor)):
+    DOA_prediction = np.squeeze(np.array(DOA_prediction))
+  # MUSIC algorithms
+  if "music" in algorithm.lower() and not ("r-music" in algorithm.lower()):
+    if figures["music"]["fig"] == None:
+      plt.style.use('default')
+      figures["music"]["fig"] = plt.figure(figsize=(8, 6))
+      plt.style.use('plot_style.txt')
+    if figures["music"]["ax"] == None:
+      figures["music"]["ax"] = figures["music"]["fig"].add_subplot(111)
+
+    mb = ModelBasedMethods(Sys_Model)
+    angels_grid = mb.angels * R2D
+    # ax.set_title(algorithm.upper() + "spectrum")
+    figures["music"]["ax"].set_xlabel("Angels [deg]")
+    figures["music"]["ax"].set_ylabel("Amplitude")
+    figures["music"]["ax"].set_ylim([0.0, 1.01])
+    figures["music"]["norm factor"] = None
+    if figures["music"]["norm factor"] != None:
+      figures["music"]["ax"].plot(angels_grid , spectrum / figures["music"]["norm factor"], label=algorithm)
+    else:
+      figures["music"]["ax"].plot(angels_grid , spectrum / np.max(spectrum), label=algorithm)
+    figures["music"]["ax"].legend()
+
+  elif "mvdr" in algorithm.lower():
+    if figures["mvdr"]["fig"] == None:
+      plt.style.use('default')
+      figures["mvdr"]["fig"] = plt.figure(figsize=(8, 6))
+      plt.style.use('plot_style.txt')
+    if figures["mvdr"]["ax"] == None:
+      figures["mvdr"]["ax"] = figures["mvdr"]["fig"].add_subplot(111, polar=True)
+    mb = ModelBasedMethods(Sys_Model)
+    # mb.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 3600, endpoint=False)
+    # ax.set_xlabel("Angels [deg]")
+    figures["mvdr"]["ax"].set_theta_zero_location('N')
+    figures["mvdr"]["ax"].set_theta_direction(-1)
+    figures["mvdr"]["ax"].set_thetamin(-90)
+    figures["mvdr"]["ax"].set_thetamax(90)
+    
+    angels_grid = mb.angels
+    # figures["mvdr"]["ax"].set_title(algorithm.upper() + "spectrum")
+    # ax.set_xlabel("Angels [deg]")
+    # ax.set_ylabel("Amplitude")
+    figures["mvdr"]["ax"].set_ylim([0.0, 1.01])
+    figures["mvdr"]["ax"].plot(angels_grid , spectrum / np.max(spectrum), label=algorithm)
+    for doa in true_DOA[0]:
+      figures["mvdr"]["ax"].plot([doa * np.pi / 180], [1], marker='x', color="r", markersize=14)
+      # figures["mvdr"]["ax"].plot(angels_grid , spectrum / np.max(spectrum), label=algorithm + " pattern")
+      # figures["mvdr"]["ax"].plot(angels_grid , spectrum / np.max(spectrum),  label=algorithm.upper() + " pattern")
+      # figures["mvdr"]["ax"].plot(angels_grid , spectrum, label=algorithm + " pattern")
+    figures["mvdr"]["ax"].legend()
   
-  if Sys_Model.scenario.startswith("Broadband"):
-    for i,data in enumerate(DataSetModelBased):
-        X, Y = data
-        X_modelbased = X[0]
-        ## RootMUSIC predictions
-        DOA_pred_MUSIC, BB_MUSIC_Spectrum, M = mb.broadband_MUSIC(X_modelbased)
-        DOA_pred = mb.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-        predicted_DOA = DOA_pred[:M][::-1]
-        
-        # if algorithm cant estimate M sources, randomize angels
-        while(predicted_DOA.shape[0] < M):
-          # print("Cant estimate M sources - MUSIC")
-          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-        lossMUSIC = criterion(predicted_DOA, Y * 180 / np.pi)
-        # lossMUSIC = MSPE(predicted_DOA, Y * 180 / np.pi)
-        BB_MUSIC_list.append(lossMUSIC)
-        
-        ## MUSIC predictions
-        DOA_pred_MUSIC, MUSIC_Spectrum, M = mb.MUSIC(X_modelbased, NUM_OF_SOURCES=M, scenario=Sys_Model.scenario)
-        DOA_pred = mb.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-        predicted_DOA = DOA_pred[:M][::-1]
-        
-        
-        # if algorithm cant estimate M sources, randomize angels
-        while(predicted_DOA.shape[0] < M):
-          # print("Cant estimate M sources - MUSIC")
-          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-        lossMUSIC = criterion(predicted_DOA, Y * 180 / np.pi)
-        # lossMUSIC = MSPE(predicted_DOA, Y * 180 / np.pi)
-        MUSIC_list.append(lossMUSIC)
-        
-        ## ESPRIT predictions
-        DOA_pred_ESPRIT, M = mb.esprit(X_modelbased, NUM_OF_SOURCES=True, scenario=Sys_Model.scenario)
+  elif "r-music" in algorithm.lower():
+    plt.style.use('default')
+    fig = plt.figure(figsize=(8, 6))
+    plt.style.use('plot_style.txt')
+    ax = fig.add_subplot(111, polar=True)
 
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_ESPRIT.shape[0] < M):
-          print("Cant estimate M sources - ESPRIT")
-          DOA_pred_ESPRIT = np.insert(DOA_pred_ESPRIT, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        lossESPRIT = criterion(DOA_pred_ESPRIT, Y * 180 / np.pi)
-        lossESPRIT_list.append(lossESPRIT)
-        
-        ## RootMUSIC predictions
-        DOA_pred_RootMUSIC, roots, M, DOA_pred_all, sorted_angels = mb.root_music(X_modelbased, NUM_OF_SOURCES=True)
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_RootMUSIC.shape[0] < M):
-          print("Cant estimate M sources - RootMUSIC")
-          DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        lossRootMUSIC = criterion(DOA_pred_RootMUSIC, Y * 180 / np.pi)
-        RootMUSIC_list.append(lossRootMUSIC)
+    # ax.set_xlabel("Angels [deg]")
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+    ax.set_thetamin(90)
+    ax.set_thetamax(-90)
 
-    ang = mb.angels * 180 / np.pi
-    # plt.plot(ang, BB_MUSIC_Spectrum, label="BB MUSIC")
-    # plt.plot(ang, MUSIC_Spectrum, label="MUSIC")
-    # plt.plot(ang, BB_MUSIC_Spectrum / np.max(BB_MUSIC_Spectrum), label="BB MUSIC")
-    # plt.plot(ang, MUSIC_Spectrum / np.max(MUSIC_Spectrum), label="MUSIC")
-    # plt.legend()
-    return np.mean(BB_MUSIC_list), np.mean(MUSIC_list), np.mean(lossESPRIT_list), np.mean(RootMUSIC_list)
-
-  else:
-    for i,data in enumerate(DataSetModelBased):
-        X, Y = data
-        X_modelbased = X[0]
-        
-        ## RootMUSIC predictions
-        DOA_pred_RootMUSIC, roots, M, DOA_pred_all, sorted_angels = mb.root_music(X_modelbased, NUM_OF_SOURCES=True)
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_RootMUSIC.shape[0] < M):
-          print("Cant estimate M sources - RootMUSIC")
-          DOA_pred_RootMUSIC = np.insert(DOA_pred_RootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        lossRootMUSIC = criterion(DOA_pred_RootMUSIC, Y * 180 / np.pi)
-        RootMUSIC_list.append(lossRootMUSIC)
-        # plot_spectrum(DOA_prediction=DOA_pred_all, true_DOA=Y * R2D, roots=roots, algorithm="root_music")
-        
-        ## ESPRIT predictions
-        DOA_pred_ESPRIT, M = mb.esprit(X_modelbased, NUM_OF_SOURCES=True)
-        # MVDR_spectrum = mb.MVDR(X_modelbased, NUM_OF_SOURCES=True)
-        
-        # plot_spectrum(DOA_prediction=None, true_DOA=None, Sys_Model=Sys_Model, Spectrum=MVDR_spectrum, algorithm="mvdr")
-
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_ESPRIT.shape[0] < M):
-          print("Cant estimate M sources - ESPRIT")
-          DOA_pred_ESPRIT = np.insert(DOA_pred_ESPRIT, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        lossESPRIT = criterion(DOA_pred_ESPRIT, Y * 180 / np.pi)
-        lossESPRIT_list.append(lossESPRIT)
-        ## SPS ESPRIT predictions
-
-        DOA_pred_SPS_ESPRIT, M = mb.esprit(X_modelbased, NUM_OF_SOURCES=True, SPS=True, sub_array_size=int(mb.N / 2) + 1)
-        # DOA_pred_SPS_ESPRIT, M = mb.esprit(X_modelbased, NUM_OF_SOURCES=True, SPS=True, sub_array_size=int(mb.N / 2) -)
-        # MVDR_spectrum = mb.MVDR(X_modelbased, NUM_OF_SOURCES=True)
-        
-        # plot_spectrum(DOA_prediction=None, true_DOA=None, Sys_Model=Sys_Model, Spectrum=MVDR_spectrum, algorithm="mvdr")
-
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_SPS_ESPRIT.shape[0] < M):
-          print("Cant estimate M sources - ESPRIT")
-          DOA_pred_SPS_ESPRIT = np.insert(DOA_pred_SPS_ESPRIT, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        loss_SPS_ESPRIT = criterion(DOA_pred_SPS_ESPRIT, Y * 180 / np.pi)
-        SPS_ESPRIT_list.append(loss_SPS_ESPRIT)
-
-        ## Spatial Smoothing RootMUSIC predictions
-        DOA_pred_SPSRootMUSIC, _, M, _, _ = mb.root_music(X_modelbased, NUM_OF_SOURCES=True,
-                                                                  SPS=True, sub_array_size=int(mb.N / 2) + 1)
-        
-        # if algorithm cant estimate M sources, randomize angels
-        while(DOA_pred_SPSRootMUSIC.shape[0] < M):
-          # print("Cant estimate M sources - SPSRootMUSIC")
-          DOA_pred_SPSRootMUSIC = np.insert(DOA_pred_SPSRootMUSIC, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)        
-        lossSPSRootMUSIC = criterion(DOA_pred_SPSRootMUSIC, Y * 180 / np.pi)
-        SPS_RootMUSIC_list.append(lossSPSRootMUSIC)
-        
-        ## MUSIC predictions
-        DOA_pred_MUSIC, MUSIC_Spectrum, M = mb.MUSIC(X_modelbased, NUM_OF_SOURCES=M)
-        DOA_pred = mb.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-        predicted_DOA = DOA_pred[:M][::-1]
-        
-        # if algorithm cant estimate M sources, randomize angels
-        while(predicted_DOA.shape[0] < M):
-          # print("Cant estimate M sources - MUSIC")
-          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-        lossMUSIC = criterion(predicted_DOA, Y * 180 / np.pi)
-        MUSIC_list.append(lossMUSIC)
-        # plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=Y * R2D, Sys_Model=Sys_Model, Spectrum=MUSIC_Spectrum, algorithm="music")
-        ## SPS MUSIC predictions
-        DOA_pred_MUSIC, SPS_MUSIC_Spectrum, M = mb.MUSIC(X_modelbased, NUM_OF_SOURCES=True,
-                                                          SPS=True, sub_array_size=int(mb.N / 2) + 1)
-        DOA_pred = mb.angels[DOA_pred_MUSIC] * 180 / np.pi                                   # Convert from Radians to Degrees
-        predicted_DOA = DOA_pred[:M][::-1]
-        
-        # if algorithm cant estimate M sources, randomize angels
-        while(predicted_DOA.shape[0] < M):
-              # print("Cant estimate M sources - SPS MUSIC")
-          predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
-        lossSPSMUSIC = criterion(predicted_DOA, Y * 180 / np.pi)
-        # lossSPSMUSIC = MSPE(predicted_DOA, Y * 180 / np.pi)
-        SPS_MUSIC_list.append(lossSPSMUSIC)
-    
-    
-    # ang = mb.angels * 180 / np.pi
-    # plt.plot(ang, MUSIC_Spectrum / np.max(MUSIC_Spectrum), label="MUSIC")
-    # plt.plot(ang, MUSIC_Spectrum, label="MUSIC")
-    # plt.plot(ang, SPS_MUSIC_Spectrum / np.max(SPS_MUSIC_Spectrum), label="SPS MUSIC")
-    # plt.plot(ang, SPS_MUSIC_Spectrum / np.max(SPS_MUSIC_Spectrum), label="SPS MUSIC")
-    # plt.legend()
-    return np.mean(RootMUSIC_list), np.mean(MUSIC_list), np.mean(SPS_RootMUSIC_list), np.mean(SPS_MUSIC_list), np.mean(lossESPRIT_list), np.mean(SPS_ESPRIT_list)
-
-
-def plot_spectrum(DOA_prediction, true_DOA, Sys_Model=None, Spectrum=None, roots=None, algorithm="music"):
-  fig = plt.figure(figsize=(8, 6), dpi=80)
-  DOA_prediction = np.squeeze(np.array(DOA_prediction))
-  true_DOA       = np.squeeze(np.array(true_DOA))
-  if algorithm == "mvdr":
-    if algorithm in ["music" , "mvdr"]:
-      mb = ModelBasedMethods(Sys_Model)
-      angels_grid = mb.angels * 180 / np.pi
-      ax = fig.add_subplot(111)
-      # ax.set_title(algorithm.upper() + "Spectrum")
-      ax.set_xlabel("Angels [deg]")
-      ax.set_ylabel("Amplitude")
-      ax.plot(angels_grid , Spectrum / np.max(Spectrum), label=algorithm.upper() + "Spectrum")
-      # ax.plot(angels_grid , Spectrum / np.max(Spectrum))
-    
-    elif algorithm.startswith("root_music"):
-      ax = fig.add_subplot(111, polar=True)
-      ax.set_xlabel("Angels [deg]")
-
-      for i in range(len(DOA_prediction)):
-        angle = DOA_prediction[i]
-        r = np.abs(roots[i])
-        print("Root-MUSIC: angle={}, r={}".format(angle,r))
-        ax.plot([0, angle * np.pi / 180], [0, r], marker='o')
-      for doa in true_DOA:
-        ax.plot([doa * np.pi / 180], [1], marker='x', color="r")
+    for i in range(len(DOA_prediction)):
+      angle = DOA_prediction[i]
+      r = np.abs(roots[i])
+      ax.set_ylim([0, 1.2])
+      # ax.set_yticks([0, 1, 2, 3, 4])
+      ax.set_yticks([0, 1])
+      ax.plot([0, angle * np.pi / 180], [0, r], marker='o')
+    for doa in true_DOA:
+      ax.plot([doa * np.pi / 180], [1], marker='x', color="r", markersize=14)
+    # ax.set_xlabel("Angels [deg]")
+    # ax.set_ylabel("Amplitude")
+    plt.savefig("{}_spectrum.pdf".format(algorithm), bbox_inches='tight')
