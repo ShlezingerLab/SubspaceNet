@@ -1,13 +1,13 @@
 """Subspace-Net main script 
     Details
-    ------------
+    -------
     Name: main.py
     Authors: D. H. Shmuel
     Created: 01/10/21
     Edited: 17/03/23
 
     Purpose
-    ------------
+    --------
     This script allows the user to run simulation of the proposed algorithm,
     by wrapping all the required procedures, calling the following functions:
         * create_dataset: For creating training and testing datasets 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     commands = {"SAVE_TO_FILE"  : False,     # Saving results to file or present them over CMD
                 "CREATE_DATA"   : True,    # Creating new data
                 "LOAD_DATA"     : False,    # Loading data from dataset 
-                "TRAIN_MODE"    : False,    # Applying training operation
+                "TRAIN_MODE"    : True,    # Applying training operation
                 "SAVE_MODEL"    : False,    # Saving tuned model
                 "EVALUATE_MODE" : True}     # Evaluating desired algorithms
                 
@@ -80,13 +80,15 @@ if __name__ == "__main__":
     ############################
     #    Parameters setting   #
     ############################
-    # for SNR in [5, 6, 7, 8, 9, 10]:
+    # for SNR in [5, 6, 7, 8, 9, 10]: 
     # System model parameters
+    # model_type = "DA-MUSIC"
+    model_type = "CNN_DOA"
     tau = 8                     # Number of lags
     N = 8                       # Number of sensors
-    M = 3                       # number of sources
-    T = 100                    # Number of observations, ideal = 200 or above
-    SNR = 10                  # Signal to noise ratio, ideal = 10 or above
+    M = 2                       # number of sources
+    T = 100                     # Number of observations, ideal = 200 or above
+    SNR = 10                    # Signal to noise ratio, ideal = 10 or above
     
     ## Signal parameters
     scenario = "NarrowBand"     # signals type, options: "NarrowBand", "Broadband_OFDM", "Broadband_simple"
@@ -97,22 +99,27 @@ if __name__ == "__main__":
     geo_noise_var = 0           # Added noise for sensors response
     
     # simulation parameters
-    samples_size = 1        # Overall dateset size 
+    samples_size = 3000       # Overall dateset size
     train_test_ratio = 1     # training and testing datasets ratio 
-    
+
     ############################
     #     Create Data Sets     #  
     ############################
     
     if commands["CREATE_DATA"]:
         set_unified_seed()
-        Create_Training_Data = False # Flag for creating training data
+        Create_Training_Data = True # Flag for creating training data
         Create_Testing_Data = True  # Flag for creating test data
         
         print("Creating Data...")
+        if model_type.startswith("CNN_DOA"): 
+            data_create_func = create_dataset_for_cnn
+        else:
+            data_create_func = create_dataset
+            
         if Create_Training_Data:
             ## Training Datasets
-            DataSet_x_train, DataSet_Rx_train, _ = create_dataset(
+            DataSet_x_train, DataSet_Rx_train, _ = data_create_func(
                                     scenario= scenario,
                                     mode= mode,
                                     N= N, M= M , T= T,
@@ -126,7 +133,7 @@ if __name__ == "__main__":
                                     geo_noise_var = geo_noise_var)
         if Create_Testing_Data:
             ## Test Datasets
-            DataSet_x_test, DataSet_Rx_test, Sys_Model = create_dataset(
+            DataSet_x_test, DataSet_Rx_test, Sys_Model = data_create_func(
                                     scenario = scenario,
                                     mode = mode,
                                     N= N, M= M , T= T,
@@ -134,10 +141,11 @@ if __name__ == "__main__":
                                     tau = tau,
                                     Save = True,
                                     DataSet_path= Main_Data_path + Data_Scenario_path + r"\TestData",
-                                    True_DOA =  [-12.34, 34.56, 65.78],
+                                    True_DOA =  None,
                                     SNR = SNR,
                                     eta = eta,
-                                    geo_noise_var = geo_noise_var)
+                                    geo_noise_var = geo_noise_var,
+                                    phase = "test")
 
     ############################
     ###    Load Data Sets    ###
@@ -150,17 +158,17 @@ if __name__ == "__main__":
             TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                     M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
 
-            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+            # DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
             DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
-            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+            # DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
             DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
             Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
         except:
             TRAIN_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, samples_size, M, N, T, SNR)
             TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}.h5'.format(scenario, mode, int(train_test_ratio * samples_size), M, N, T, SNR)
-            DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+            # DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
             DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
-            DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+            # DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
             DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
             Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
 
@@ -171,11 +179,11 @@ if __name__ == "__main__":
     
     if commands["TRAIN_MODE"]:
         # Training aided parameters
-        optimal_lr = 0.001          # Learning rate value
-        optimal_bs = 2048           # Batch size value
-        epochs = 80                 # Number of epochs
-        optimal_step = 1            # Number of steps for learning rate decay iteration
-        optimal_gamma_val = 1       # learning rate decay value
+        optimal_lr = 0.0005         # Learning rate value
+        optimal_bs = 256            # Batch size value
+        epochs = 200                # Number of epochs
+        optimal_step = 30          # Number of steps for learning rate decay iteration
+        optimal_gamma_val = 0.9      # learning rate decay value
 
         # list containers declaration
         Test_losses = []
@@ -192,6 +200,7 @@ if __name__ == "__main__":
         # print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
         # print("Description: Simulation with constant {} deviation in sensors location, T = {}, SNR = {}, {} sources".format(eta, T, SNR, mode))
         print("Description: Simulation geometry mis-matches with added noise to array response", end=" ")
+        print(f"Model: {model_type}")
         print(f"variance = {geo_noise_var} , T = {T}, SNR = {SNR}, {mode} sources")
         print("Simulation parameters:")
         print(f"Number of sensors = {N}")
@@ -209,11 +218,17 @@ if __name__ == "__main__":
         print("Spacing deviation (eta) = {}".format(eta))
         print("Geometry noise variance = {}".format(geo_noise_var))
         
+        if model_type.startswith("DA-MUSIC") or model_type.startswith("CNN_DOA"):
+            train_dataset = DataSet_x_train
+            test_dataset = DataSet_x_test
+        else:
+            train_dataset = DataSet_Rx_train
+            test_dataset = DataSet_Rx_test
+            
         model, loss_train_list, loss_valid_list, Test_loss = run_simulation(
-                        Model_Train_DataSet = DataSet_Rx_train,
-                        Model_Test_DataSet = DataSet_Rx_test,
+                        train_dataset = train_dataset,
+                        test_dataset = test_dataset,
                         tau = tau,
-                        N = N,
                         optimizer_name = "Adam",
                         lr_val = optimal_lr,
                         Schedular = True,
@@ -221,15 +236,17 @@ if __name__ == "__main__":
                         step_size_val = optimal_step,
                         gamma_val = optimal_gamma_val,
                         num_epochs = epochs,
-                        model_name= "model_tau=2_M=2_100Samples_SNR_{}_T=2_just_a_test".format(SNR),
+                        model_name= "{}_M={}_T={}_SNR_{}_tau={}_{}_{}_grid_361".format(model_type, M, T, SNR, tau, scenario, mode),
                         Bsize = optimal_bs,
                         Sys_Model = Sys_Model,
-                        load_flag = True,
-                        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T),
-                        loading_path = saving_path + r"\Models" + r"/model_09_04_2023_22_04",
+                        load_flag = False,
+                        # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(3, mode, tau, SNR, T),
+                        loading_path = saving_path + r"\Models" + r"\{}_M={}_T={}_SNR_{}_tau={}_{}_{}".format(model_type, M, T, SNR, tau, scenario, mode),
+                        # loading_path = saving_path + r"\Models" + r"\{}_M={}_T={}_SNR_{}_tau={}_{}_{}".format(model_type, M, T, SNR, tau, scenario, mode),
                         # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(2, mode, tau, 10, 20),
                         Plot = False,
-                        dataset_mb = DataSet_x_test)
+                        dataset_mb = DataSet_x_test,
+                        model_type = model_type)
         
         # Save model weights
         if commands["SAVE_MODEL"]:
@@ -261,13 +278,11 @@ if __name__ == "__main__":
     ############################
     
     if commands["EVALUATE_MODE"]:
-        # augmented_methods = ["music", "mvdr"]
-        augmented_methods = ["mvdr"]
-        # augmented_methods = ["music"]
-        # augmented_methods = []
-        subspace_methods = ["mvdr"]
-        # subspace_methods = ["r-music"]
-                            # "sps-music", "sps-esprit", "sps-r-music"]
+        # augmented_methods = ["music", "mvdr", "esprit"]
+        augmented_methods = []
+        subspace_methods = []
+        # subspace_methods = ["esprit", "music", "r-music",
+        #                     "sps-r-music", "sps-esprit", "sps-music"]
                             # "bb-music"]
         # RootMUSIC_loss = []
         MUSIC_loss = []
@@ -307,12 +322,17 @@ if __name__ == "__main__":
             if scenario.startswith("Broadband"):
                 loading_path = saving_path + r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
             else:
-                loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+                # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+                loading_path = saving_path + r"\Models" + r"\{}_M={}_T={}_SNR_{}_tau={}_{}_{}".format(model_type, M, T, SNR, tau, scenario, mode)
+                # loading_path = saving_path + r"\Models" + r"\model_14_05_2023_23_42"
+                
+                
                 # loading_path = saving_path + r"\Models" + r"/model_09_04_2023_22_04"
 
             if T in [100, 200] and SNR == 10 and (M in [2, 3, 4]) and eta == 0 and geo_noise_var == 0 and not scenario.startswith("Broadband"): 
                 # model = Deep_Root_Net(tau=tau, ActivationVal=0.5)                                         
-                model = Deep_Root_Net_AntiRectifier(tau=tau)                                    
+                # model = Deep_Root_Net_AntiRectifier(tau=tau)                                    
+                model = CNN_DOA(N, 361)                                    
             else:
                 model = Deep_Root_Net_AntiRectifier(tau=tau) 
                     
@@ -342,13 +362,19 @@ if __name__ == "__main__":
         # criterion = MSPELoss() # define loss criterion
         # hybrid_criterion = MSPE
         # Evaluate SubspaceNet augmented methods
-        PLOT_SPECTRUM = True
+        PLOT_SPECTRUM = False
         figures = {"music"  : {"fig" : None, "ax" : None, "norm factor" : None},
                    "r-music": {"fig" : None, "ax" : None},
                    "esprit" : {"fig" : None, "ax" : None},
                    "mvdr"   : {"fig" : None, "ax" : None, "norm factor" : None}}
-        DeepRootTest_loss = evaluate_model(model, DataSet_Rx_test, criterion=criterion,
-                                           plot_spec= PLOT_SPECTRUM, figures=figures)
+        # DeepRootTest_loss = evaluate_model(model, DataSet_Rx_test, criterion=criterion,
+        #                                    plot_spec= PLOT_SPECTRUM, figures=figures)
+        if model_type.startswith("CNN_DOA") or model_type.startswith("DA-MUSIC"):
+            test_set =  DataSet_x_test
+        else:
+            test_set =  DataSet_Rx_test
+        DeepRootTest_loss = evaluate_model(model, test_set, criterion=criterion,
+                                           plot_spec= PLOT_SPECTRUM, figures=figures, model_type = model_type)
         print(f"Deep Root-MUSIC Test loss = {DeepRootTest_loss}")
         for algorithm in augmented_methods:
             hybrid_loss = evaluate_hybrid_model(model, DataSet_Rx_test, Sys_Model,
@@ -358,7 +384,7 @@ if __name__ == "__main__":
             loss = evaluate_model_based(DataSet_x_test, Sys_Model, criterion=hybrid_criterion,
                                         plot_spec = PLOT_SPECTRUM, algorithm = algorithm, figures = figures)
             print("{} test loss = {}".format(algorithm.lower(), loss))
-        figures["mvdr"]["fig"].savefig(f"mvdr_spectrum_M_{M}_{mode}_T_{T}_SNR_{SNR}.pdf", bbox_inches='tight')
+        # figures["mvdr"]["fig"].savefig(f"mvdr_spectrum_M_{M}_{mode}_T_{T}_SNR_{SNR}.pdf", bbox_inches='tight')
         # figures["music"]["fig"].savefig("{}_spectrum.pdf".format("music"), bbox_inches='tight')
     plt.show()
     print("end")

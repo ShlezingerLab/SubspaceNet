@@ -17,29 +17,29 @@ class ModelBasedMethods(object):
             System_model (): 
         """        
         self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for representation of the MUSIC spectrum
-        self.system_model = System_model
+        self.Sys_Model = System_model
         self.M = System_model.M
         self.N = System_model.N
         self.dist = System_model.dist
 
     def broadband_MUSIC(self, X, NUM_OF_SOURCES=True, number_of_bins=50):
-        number_of_bins = int(self.system_model.max_freq / 10)
+        number_of_bins = int(self.Sys_Model.max_freq / 10)
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
             M = self.M                                                
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
             # clustring technique                                   
             pass
-        X = np.fft.fft(X, axis=1, n=self.system_model.f_sampling)
+        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling)
         num_of_samples = len(self.angels)
         spectrum = np.zeros((number_of_bins, num_of_samples))
         
         for i in range(number_of_bins):
-            ind = int(self.system_model.min_freq) + i * len(self.system_model.f_rng) // number_of_bins
-            R_x = np.cov(X[:, ind:ind + len(self.system_model.f_rng) // number_of_bins])
+            ind = int(self.Sys_Model.min_freq) + i * len(self.Sys_Model.f_rng) // number_of_bins
+            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng) // number_of_bins])
             eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
             # Un = eigenvectors[:, M:]
             Un = eigenvectors[:, np.argsort(eigenvalues)[::-1]][:, M:]  
-            spectrum[i], _= self.spectrum_calculation(Un, f=ind + len(self.system_model.f_rng) // number_of_bins - 1)
+            spectrum[i], _= self.spectrum_calculation(Un, f=ind + len(self.Sys_Model.f_rng) // number_of_bins - 1)
         
         # average spectra to one spectrum
         spectrum = np.sum(spectrum, axis=0)
@@ -49,19 +49,19 @@ class ModelBasedMethods(object):
         return DOA_pred, spectrum, M     
 
     def broadband_root_music(self, X, NUM_OF_SOURCES=True, number_of_bins=50):
-        number_of_bins = int(self.system_model.max_freq / 10)
+        number_of_bins = int(self.Sys_Model.max_freq / 10)
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
             M = self.M                                                
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
             # clustring technique                                   
             pass
-        X = np.fft.fft(X, axis=1, n=self.system_model.f_sampling)
+        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling)
         num_of_samples = len(self.angels)
         F = []
         
         for i in range(number_of_bins):
-            ind = int(self.system_model.min_freq) + i * len(self.system_model.f_rng) // number_of_bins
-            R_x = np.cov(X[:, ind:ind + len(self.system_model.f_rng) // number_of_bins])
+            ind = int(self.Sys_Model.min_freq) + i * len(self.Sys_Model.f_rng) // number_of_bins
+            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng) // number_of_bins])
             eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
             # Un = eigenvectors[:, M:]
             Un = eigenvectors[:, np.argsort(eigenvalues)[::-1]][:, M:]  
@@ -206,7 +206,7 @@ class ModelBasedMethods(object):
     def spectrum_calculation(self, Un, f=1, array_form="ULA"):
         Spectrum_equation = []
         for angle in self.angels:
-            a = self.system_model.steering_vec(theta= angle, f= f, array_form = array_form)
+            a = self.Sys_Model.steering_vec(theta= angle, f= f, array_form = array_form)
             a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
             Spectrum_equation.append(np.conj(a).T @ Un @ np.conj(Un).T @ a)
         Spectrum_equation = np.array(Spectrum_equation, dtype=complex)
@@ -381,7 +381,7 @@ class ModelBasedMethods(object):
                 f = 500 
             else:
                 f = 1
-            a = self.system_model.steering_vec(theta = angle, f= f, array_form = "ULA").reshape((self.N,1))
+            a = self.Sys_Model.steering_vec(theta = angle, f= f, array_form = "ULA").reshape((self.N,1))
             
             ## Adaptive calculation of W_opt
             W_opt = (R_inv @ a) / (np.conj(a).T @ R_inv @ a)
