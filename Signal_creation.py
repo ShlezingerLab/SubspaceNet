@@ -20,6 +20,24 @@ def create_DOA_with_gap(M:int, gap:float) :
     # print(DOA)
     return DOA
 
+def create_doa_permutations(M:int, gap:float) :        
+    """Create all available doa combinations out of sources with minimal gap value for simulations
+    Args:
+        M (int): number of sources
+        gap (float): minimal gap value
+
+    Returns:
+        np.ndarray: Doa array
+    """
+    while(True):
+        DOA = np.round(np.random.rand(M) *  180 ,decimals = 2) - 90
+        DOA.sort()
+        difference_between_angles = np.array([np.abs(DOA[i+1] - DOA[i]) for i in range(M-1)])
+        if(np.sum(difference_between_angles > gap) == M - 1 and np.sum(difference_between_angles < (180 - gap)) == M - 1):
+            break
+    # print(DOA)
+    return DOA
+
 def create_closely_spaced_DOA(M:int, gap:float):
     """Create closely spaced sources scenario with minimal gap value for simulations
 
@@ -42,7 +60,7 @@ def create_closely_spaced_DOA(M:int, gap:float):
             DOA.append(candidate_DOA)
     return np.array(DOA)
 
-class Samples(System_model):
+class  Samples(System_model):
     '''
     Class used for defining and creating signals and observations.
     inherit from SystemModel class

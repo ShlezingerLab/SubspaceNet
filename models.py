@@ -271,45 +271,39 @@ class Deep_Augmented_MUSIC(nn.Module):
         ## input dim (N, T)
         super(Deep_Augmented_MUSIC, self).__init__()
         self.N, self.T, self.M = N, T, M
-        self.angels = torch.linspace(-1 * np.pi / 2, np.pi / 2, 360)
+        self.angels = torch.linspace(-1 * np.pi / 2, np.pi / 2, 361)
         self.input_size = 2 * self.N
         self.hidden_size = 2 * self.N
         self.rnn = nn.GRU(self.input_size, self.hidden_size, batch_first=True)
+        # nn.init.xavier_uniform(self.rnn.weigh)
         self.fc = nn.Linear(self.hidden_size, self.hidden_size * self.N)
+        nn.init.xavier_uniform(self.fc.weight)
         self.fc1 = nn.Linear(self.angels.shape[0], self.hidden_size)
+        nn.init.xavier_uniform(self.fc1.weight)
         self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
+        nn.init.xavier_uniform(self.fc2.weight)
         self.fc3 = nn.Linear(self.hidden_size, self.M)
+        nn.init.xavier_uniform(self.fc3.weight)
         self.ReLU = nn.ReLU()
         self.DropOut = nn.Dropout(0.25)
         self.BatchNorm = nn.BatchNorm1d(self.T)
-
-    def reshape_to_corr_mat(self, Rx, N):
-        for i,b in enumerate(Rx):
-          if i == 0:
-            Rx_mat = torch.unsqueeze(Rx[i].reshape(2*N, N),0)
-          else:
-            Rx_mat = torch.cat((Rx_mat, torch.unsqueeze(Rx[i].reshape(2*N, N),0)),0)
-        return Rx_mat
-
-    def Replace_X_order(self, X, N, T):
-        for i,b in enumerate(X):
-          if i == 0:
-            X = torch.unsqueeze(X[i].reshape(T, 2 * N),0)
-          else:
-            X = torch.cat((X, torch.unsqueeze(X[i].reshape(T, 2 * N),0)),0)
-        return X
+        self.sv = self.steering_vec()
     
-    def steering_vec(self, theta):
-            return torch.exp(-1 * 1j * np.pi * torch.linspace(0, self.N - 1, self.N) * np.sin(theta))
-    
+    def steering_vec(self):
+        sv = []
+        for angle in self.angels:
+            a = torch.exp(-1 * 1j * np.pi * torch.linspace(0, self.N - 1, self.N) * np.sin(angle))
+            sv.append(a)
+        return torch.stack(sv, dim=0)
+
     def spectrum_calculation(self, Un, f=1, array_form="ULA"):
         Spectrum_equation = []
-        for angle in self.angels:
-            a = self.steering_vec(theta= angle)
-            a = a[:Un.shape[0]]                                         # sub-array response for Spatial smoothing 
-            Spectrum_equation.append(torch.conj(a).T @ Un @ torch.conj(Un).T @ a)
+        for i in range(self.angels.shape[0]):
+            Spectrum_equation.append(torch.real(torch.conj(self.sv[i]).T @ Un @ torch.conj(Un).T @ self.sv[i]))
+            # Spectrum_equation.append(torch.conj(self.sv[i]).T @ Un @ torch.conj(Un).T @ self.sv[i])
         Spectrum_equation = torch.stack(Spectrum_equation, dim=0)
-        spectrum = torch.abs(1 / Spectrum_equation)
+        # spectrum = 1 / torch.abs(Spectrum_equation)
+        spectrum = 1 / Spectrum_equation
         
         return spectrum, Spectrum_equation
 
@@ -319,27 +313,28 @@ class Deep_Augmented_MUSIC(nn.Module):
         for iter in range(self.BATCH_SIZE):
             R = Bs_Rz[iter]
             eigenvalues, eigenvectors = torch.linalg.eig(R)                                         # Find the eigenvalues and eigenvectors using EVD
-            Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, self.M:]
+            # Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, self.M:]
+            Un = eigenvectors[:, self.M:]
             spectrum.append(self.spectrum_calculation(Un)[0])             
-        #TODO: error here
+        # TODO: error here
         return torch.stack(spectrum, dim = 0)
     
     def forward(self, X):
-        X = torch.cat((torch.real(X),torch.imag(X)), 1)
-        ## Input shape of signal X(t): [Batch size, 2N, T]
+        # input X.shape == [Batch size, N, T]
+        X = torch.cat((torch.real(X),torch.imag(X)), 1) # X.shape ==  [Batch size, 2N, T]
         self.BATCH_SIZE = X.shape[0]
-        self.N = int(X.shape[1] / 2)
-        self.T = X.shape[-1]
-
-        X = X.view(X.size(0),X.size(2),X.size(1)) #[Batch size, T, 2N]
+        X = X.view(X.size(0), X.size(2), X.size(1)) # [Batch size, T, 2N]
         X = self.BatchNorm(X)
         gru_out, hn = self.rnn(X)
-        Rx = gru_out[:, -1, :]
+        # Rx = gru_out[:, -1, :]
+        Rx = gru_out[:,-1]
+        # Rx = hn.squeeze()
+        Rx = Rx.view(Rx.size(0), 1, Rx.size(1)) # [Batch size, T, 2N]
         Rx = self.fc(Rx)
 
-        Rx_View = self.reshape_to_corr_mat(Rx, self.N)
-        Rx_real = Rx_View[:, :self.N, :]                                                   # Output shape [Batch size, N, N])  
-        Rx_imag = Rx_View[:, self.N:, :]                                                   # Output shape [Batch size, N, N])  
+        Rx_view = Rx.view(self.BATCH_SIZE, 2 * self.N, self.N)
+        Rx_real = Rx_view[:, :self.N, :]                                                   # Output shape [Batch size, N, N])  
+        Rx_imag = Rx_view[:, self.N:, :]                                                   # Output shape [Batch size, N, N])  
         Kx_tag = torch.complex(Rx_real, Rx_imag)                                           # Output shape [Batch size, N, N])
 
         spectrum = self.pre_MUSIC(Kx_tag)
@@ -350,12 +345,73 @@ class Deep_Augmented_MUSIC(nn.Module):
         
         DOA = self.fc3(y)
         return DOA
+    
+class CNN_DOA(nn.Module):
+    def __init__(self, N, grid_size):
+        ## input dim (N, T)
+        super(CNN_DOA, self).__init__()
+        self.N = N
+        self.grid_size = grid_size
+        self.conv1 = nn.Conv2d(3, 256, kernel_size = 3)
+        self.conv2 = nn.Conv2d(256, 256, kernel_size = 2)
+        self.fc1 = nn.Linear(256 * (self.N - 5) * (self.N - 5), 4096)
+        self.BatchNorm = nn.BatchNorm2d(256)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc4 = nn.Linear(1024, self.grid_size)
+        self.DropOut = nn.Dropout(0.3)
+        self.Sigmoid = nn.Sigmoid()
+        self.ReLU = nn.ReLU()
+    
+    def forward(self, X):
+        # input X.shape == [Batch size, 3, N, N]
+        X = X.view(X.size(0), X.size(3), X.size(2), X.size(1)) # [Batch size, 3, N, N]
+        # conv layer 1: 3xNxN-->256x(N-2)x(N-2)
+        X = self.conv1(X)
+        # X = self.BatchNorm(X)
+        X = self.ReLU(X)
+        
+        # conv layer 2: 256x(N-2)x(N-2)-->256x(N-3)x(N-3)
+        X = self.conv2(X)
+        # X = self.BatchNorm(X)
+        X = self.ReLU(X)
+        
+        # conv layer 3: 256x(N-3)x(N-3)-->256x(N-4)x(N-4)
+        X = self.conv2(X)
+        # X = self.BatchNorm(X)
+        X = self.ReLU(X)
+        
+        # conv layer 4: 256x(N-4)x(N-4)-->256x(N-5)x(N-5)
+        X = self.conv2(X)
+        # X = self.BatchNorm(X)
+        X = self.ReLU(X)
+        
+        # FC layer
+        X = X.view(X.size(0), -1)
+        X = self.DropOut(self.ReLU(self.fc1(X)))
+        X = self.DropOut(self.ReLU(self.fc2(X)))
+        X = self.DropOut(self.ReLU(self.fc3(X)))
+        X = self.fc4(X)
+        X = self.Sigmoid(X)
+        
+        return X
 
 
 if __name__ == "__main__":
-    model = Deep_Augmented_MUSIC(8, 10, 2)
-    X = torch.rand((8, 10)) + 1j * torch.rand((8, 10))
-    X = torch.stack([X, X ** 2 , X ** 3], dim =0)
-    print(X.shape)
-    y = model(X)
-    print(y)
+    # model = Deep_Augmented_MUSIC(N=8, T=10, M=2)
+    # X = torch.rand((8, 10)) + 1j * torch.rand((8, 10))
+    # X_new = X
+    # for i in range(10000):
+    #     X_new = torch.stack([X_new, X], dim =0)
+    # print(X_new.shape)
+    # y = model(X_new)
+    # print(y)
+    
+    model = CNN_DOA(N=8, grid_size=361)
+    X = torch.rand((10, 8, 8, 3))
+    # X_new = torch.tensor(X, dtype=torch.complex64)
+    X_new = X
+    Y = torch.zeros(181)
+    Y[10] = 1
+    Y[20] = 1
+    y = model(X_new)

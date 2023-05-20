@@ -100,18 +100,18 @@ def scenario_to_plot(simulation, conv_method=unit, mode = "non-coherent", T = 20
                 
                 ## MSPE Scores
                 else:
-                    # Loss["SubNet+R-MUSIC"]   = np.array([0.0031, 0.0011, 0.0007, 0.0005, 0.0003])
-                    # Loss["SPS+R-MUSIC"]      = np.array([0.0829, 0.0619, 0.0536, 0.0443, 0.0394])
-                    # Loss["R-MUSIC"]          = np.array([0.1441, 0.1369, 0.1334, 0.1279, 0.1258])
+                    Loss["SubNet+R-MUSIC"]   = np.array([0.0031, 0.0011, 0.0007, 0.0005, 0.0003])
+                    Loss["SPS+R-MUSIC"]      = np.array([0.0829, 0.0619, 0.0536, 0.0443, 0.0394])
+                    Loss["R-MUSIC"]          = np.array([0.1441, 0.1369, 0.1334, 0.1279, 0.1258])
                     
                     Loss["SubNet+ESPRIT"]    = np.array([0.01475, 0.01232, 0.01127, 0.00683, 0.0049])
                     Loss["SPS+ESPRIT"]       = np.array([0.0806, 0.06516, 0.0506, 0.03955, 0.0347])
                     Loss["ESPRIT"]           = np.array([0.2785, 0.278419, 0.2718, 0.2774, 0.27714])
                     
                     # Run in higher gap
-                    Loss["SubNet+MUSIC"]     = np.array([0.0534, 0.0506, 0.0460, 0.03298, 0.01295])
-                    Loss["SPS+MUSIC"]        = np.array([0.0942, 0.0723, 0.0638, 0.0569, 0.054])
-                    Loss["MUSIC"]            = np.array([0.1124, 0.1055, 0.0954, 0.0976, 0.0948])
+                    # Loss["SubNet+MUSIC"]     = np.array([0.0534, 0.0506, 0.0460, 0.03298, 0.01295])
+                    # Loss["SPS+MUSIC"]        = np.array([0.0942, 0.0723, 0.0638, 0.0569, 0.054])
+                    # Loss["MUSIC"]            = np.array([0.1124, 0.1055, 0.0954, 0.0976, 0.0948])
         elif T == 20:
             x_axis["SNR"] = np.array([5, 6, 7, 8, 9 ,10])
             # non-coherent sources
@@ -179,14 +179,14 @@ def scenario_to_plot(simulation, conv_method=unit, mode = "non-coherent", T = 20
                 ## MSPE Scores
                 else:
                     Loss["SubNet+R-MUSIC"]   = np.array([0.0068, 0.0049, 0.0040, 0.0036, 0.0031, 0.0027])
+                    Loss["SPS+R-MUSIC"]      = np.array([0.0767, 0.0609, 0.0513, 0.0422, 0.0362, 0.0316])
+                    Loss["R-MUSIC"]          = np.array([0.3179, 0.3027, 0.3064, 0.2949, 0.2988, 0.2917])
                     # Loss["SubNet+MUSIC"]     = np.array([0.0702, 0.0675, 0.06051, 0.05604, 0.05340, 0.0506472])
                     Loss["SubNet+ESPRIT"]    = np.array([0.01102, 0.00935, 0.00829, 0.00782, 0.00751, 0.0073])
-                    # Loss["MUSIC"]            = np.array([0.2471, 0.2231, 0.2196, 0.1980, 0.2023, 0.1894])
-                    Loss["R-MUSIC"]          = np.array([0.3179, 0.3027, 0.3064, 0.2949, 0.2988, 0.2917])
-                    Loss["ESPRIT"]           = np.array([0.32363, 0.32217, 0.327, 0.3207, 0.32317, 0.327887])
-                    Loss["SPS+R-MUSIC"]      = np.array([0.0767, 0.0609, 0.0513, 0.0422, 0.0362, 0.0316])
-                    # Loss["SPS+MUSIC"]        = np.array([0.0972, 0.0815, 0.0789, 0.0653, 0.0603, 0.0534])
                     Loss["SPS+ESPRIT"]       = np.array([0.0683, 0.0545, 0.0451, 0.0385, 0.0327, 0.027654])
+                    # Loss["MUSIC"]            = np.array([0.2471, 0.2231, 0.2196, 0.1980, 0.2023, 0.1894])
+                    Loss["ESPRIT"]           = np.array([0.32363, 0.32217, 0.327, 0.3207, 0.32317, 0.327887])
+                    # Loss["SPS+MUSIC"]        = np.array([0.0972, 0.0815, 0.0789, 0.0653, 0.0603, 0.0534])
     
     ###### BroadBand simulation  #####
     elif simulation.startswith("OFDM"):
@@ -350,14 +350,54 @@ if __name__ == "__main__":
     ## distance_calibration
     # plt.xlim([4.9, 10.1])
     
+    ########################################################
+    # simulation = "SNR"
+    # algorithm="all"
+    # T = 200
+    # mode = "coherent"
+    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=rad2dB, mode= mode, T=T)
+    # plot(x_axis, Loss, conv_method=rad2dB, algorithm=algorithm)
+    # plt.xlim([-5.1, -0.9])
+    # plt.ylim([-36, -5])
+    # # plt.legend(bbox_to_anchor=(0.21, 0.34), loc=0)
+    # plt.savefig("{}_T={}_{}_{}.pdf".format(simulation, T, mode, algorithm),bbox_inches='tight')
+    ########################################################
+
+    ########################################################
+    # simulation = "SNR"
+    # algorithm="all"
+    # T = 20
+    # mode = "coherent"
+    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=rad2dB, mode= mode, T=T)
+    # plot(x_axis, Loss, conv_method=rad2dB, algorithm=algorithm)
+    # # plt.xlim([-5.1, -0.9])
+    # plt.xlim([4.9, 10.1])
+    # plt.ylim([-41, -5])
+    # plt.legend(bbox_to_anchor=(0.41, 0.54), loc=0)
+    # plt.savefig("{}_T={}_{}_{}.pdf".format(simulation, T, mode, algorithm),bbox_inches='tight')
+    ########################################################
+    ########################################################
+    # simulation = "SNR"
+    # algorithm="all"
+    # T = 2
+    # mode = "coherent"
+    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=rad2dB, mode= mode, T=T)
+    # plot(x_axis, Loss, conv_method=rad2dB, algorithm=algorithm)
+    # # plt.xlim([-5.1, -0.9])
+    # plt.xlim([4.9, 10.1])
+    # plt.ylim([-26, -4.5])
+    # # plt.legend(bbox_to_anchor=(0.41, 0.54), loc=0)
+    # plt.savefig("{}_T={}_{}_{}.pdf".format(simulation, T, mode, algorithm),bbox_inches='tight')
+    ########################################################
+
     # ########################################################
-    simulation = "distance_calibration"
-    x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit)
-    algorithm="all"
-    plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
-    plt.xlabel(r"$\eta [\lambda / 2]$")
-    plt.ylim([0.015, 0.27])
-    plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
+    # simulation = "distance_calibration"
+    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit)
+    # algorithm="all"
+    # plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
+    # plt.xlabel(r"$\eta [\lambda / 2]$")
+    # plt.ylim([0.015, 0.27])
+    # plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
     # ########################################################
 
     # ########################################################
@@ -375,16 +415,16 @@ if __name__ == "__main__":
     # ########################################################
 
     ########################################################
-    # simulation = "sv_noise"
-    # x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit)
-    # algorithm="all"
-    # plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
-    # plt.xlabel(r"$\sigma^2$")
-    # plt.xlim([0.065, 0.76])
-    # # plt.xscale("log", base=10)
-    # # plt.ylim([0.02, 0.68])
-    # plt.ylim([0.01, 0.195])
-    # plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
+    simulation = "sv_noise"
+    x_axis, Loss = scenario_to_plot(simulation=simulation, conv_method=unit)
+    algorithm="all"
+    plot(x_axis, Loss, conv_method=unit, algorithm=algorithm)
+    plt.xlabel(r"$\sigma^2_{\rm sv}$")
+    plt.xlim([0.065, 0.76])
+    # plt.xscale("log", base=10)
+    # plt.ylim([0.02, 0.68])
+    plt.ylim([0.01, 0.195])
+    plt.savefig("{}_{}.pdf".format(simulation, algorithm),bbox_inches='tight')
     ########################################################
     
     
@@ -413,39 +453,85 @@ if __name__ == "__main__":
 
     #######################################################
     # simulation = "eigenvalues"
-    # RootMUSIC_Rx = [[ 1.73716980e+03+7.64657289e-15j, -2.39444190e+02-6.56316090e+02j,
-    # 7.23856406e+02+2.57973205e+02j,  4.69720262e+02-1.69492130e+02j,
-    # 9.53657842e+02-8.88213300e+02j, -7.24412394e+02-2.70281966e+02j,
-    # 1.28687308e+03-5.90436586e+01j, -2.62877100e+02-1.24084339e+03j],
-    # [-2.39444190e+02+6.56316090e+02j,  2.83417070e+02+5.02114423e-16j,
-    # -1.97789098e+02+2.38177650e+02j, -6.17562632e-01+2.01077410e+02j,
-    # 2.04433876e+02+4.83299448e+02j,  2.02344422e+02-2.37198544e+02j,
-    # -1.55053617e+02+4.95063597e+02j,  5.05625429e+02+7.17731979e+01j],
-    # [ 7.23856406e+02-2.57973205e+02j, -1.97789098e+02-2.38177650e+02j,
-    # 3.41994049e+02-1.43722635e-15j , 1.70595960e+02-1.40568891e+02j,
-    # 2.65821125e+02-5.12284849e+02j, -3.42393449e+02-5.21353618e+00j,
-    # 5.27852132e+02-2.16132116e+02j, -2.94246784e+02-4.78540067e+02j],
-    # [ 4.69720262e+02+1.69492130e+02j, -6.17562632e-01-2.01077410e+02j,
-    # 1.70595960e+02+1.40568891e+02j,  1.45442078e+02+4.30131025e-16j,
-    # 3.44958135e+02-1.47139402e+02j, -1.69775268e+02-1.43926155e+02j,
-    # 3.54256587e+02+1.09678576e+02j , 5.00216316e+01-3.61449790e+02j],
-    # [ 9.53657842e+02+8.88213300e+02j,  2.04433876e+02-4.83299448e+02j,
-    # 2.65821125e+02+5.12284849e+02j,  3.44958135e+02+1.47139402e+02j,
-    # 9.80715260e+02+3.21936783e-15j, -2.59569616e+02-5.19315107e+02j,
-    # 7.37422524e+02+6.25995605e+02j,  4.90812015e+02-8.16448144e+02j],
-    # [-7.24412394e+02+2.70281966e+02j,  2.02344422e+02+2.37198544e+02j,
-    # -3.42393449e+02+5.21353618e+00j, -1.69775268e+02+1.43926155e+02j,
-    # -2.59569616e+02+5.19315107e+02j,  3.46570425e+02+3.98591700e-16j,
-    # -5.28066855e+02+2.25339224e+02j,  3.03257510e+02+4.76937210e+02j],
-    # [ 1.28687308e+03+5.90436586e+01j, -1.55053617e+02-4.95063597e+02j,
-    # 5.27852132e+02+2.16132116e+02j,  3.54256587e+02-1.09678576e+02j,
-    # 7.37422524e+02-6.25995605e+02j, -5.28066855e+02-2.25339224e+02j,
-    # 9.58122381e+02+0.00000000e+00j, -1.52615050e+02-9.29074324e+02j],
-    # [-2.62877100e+02+1.24084339e+03j,  5.05625429e+02-7.17731979e+01j,
-    # -2.94246784e+02+4.78540067e+02j,  5.00216316e+01+3.61449790e+02j,
-    # 4.90812015e+02+8.16448144e+02j,  3.03257510e+02-4.76937210e+02j,
-    # -1.52615050e+02+9.29074324e+02j,  9.29159328e+02+0.00000000e+00j]]
-
+    empirical_cov = [[   1.32462396  +0.j        ,    1.37029507 +12.71751673j,
+           3.19058897 +11.36444576j,   -3.62373953  +0.217819j  ,
+         -14.07081456  -1.83435012j,   -9.18583814  +1.72975747j,
+           0.35775326  -3.06552153j,    1.92934983 -12.16284328j],
+       [   1.37029507 -12.71751673j,  123.51651923  +0.j        ,
+         112.40894199 -18.87609266j,   -1.65743318 +35.01631097j,
+         -32.1672774 +133.19419286j,    7.10459059 +89.98125679j,
+         -29.06152625  -6.60595185j, -114.77777044 -31.10560002j],
+       [   3.19058897 -11.36444576j,  112.40894199 +18.87609266j,
+         105.18493554  +0.j        ,   -6.85966093 +31.61407584j,
+         -49.62960083+116.30044207j,   -7.28546299 +82.97517489j,
+         -25.43854764 -10.45314528j,  -99.70241736 -45.84895571j],
+       [  -3.62373953  -0.217819j  ,   -1.65743318 -35.01631097j,
+          -6.85966093 -31.61407584j,    9.94918839  +0.j        ,
+          38.19152628  +7.33196595j,   25.41389852  -3.22154864j,
+          -1.48278568  +8.32743969j,   -7.27811052 +32.95631695j],
+       [ -14.07081456  +1.83435012j,  -32.1672774 -133.19419286j,
+         -49.62960083-116.30044207j,   38.19152628  -7.33196595j,
+         152.00741458  +0.j        ,   95.18115963 -31.09496836j,
+           0.44492634 +33.05891425j,   -3.65130843+131.87155093j],
+       [  -9.18583814  -1.72975747j,    7.10459059 -89.98125679j,
+          -7.28546299 -82.97517489j,   25.41389852  +3.22154864j,
+          95.18115963 +31.09496836j,   65.95961278  +0.j        ,
+          -6.48400797 +20.79122767j,  -29.26224018 +81.82594155j],
+       [   0.35775326  +3.06552153j,  -29.06152625  +6.60595185j,
+         -25.43854764 +10.45314528j,   -1.48278568  -8.32743969j,
+           0.44492634 -33.05891425j,   -6.48400797 -20.79122767j,
+           7.19102929  +0.j        ,   28.66903396  +1.18008334j],
+       [   1.92934983 +12.16284328j, -114.77777044 +31.10560002j,
+         -99.70241736 +45.84895571j,   -7.27811052 -32.95631695j,
+          -3.65130843-131.87155093j,  -29.26224018 -81.82594155j,
+          28.66903396  -1.18008334j,  114.49071775  +0.j        ]]
+    ssn_cov = [[  56731.0547+0.0000j,   -4314.5723-98431.1094j,
+         -123549.7266+117745.7031j,   25086.9844+128895.8984j,
+           64204.0430+39669.5938j, -111450.4844-118976.4844j,
+         -100929.3750+28066.1016j,   30292.9414+13613.3086j],
+        [  -4314.5723+98431.1094j,  833051.8750+0.0000j,
+           29494.4316-299663.6250j, -180515.4688+362784.9375j,
+          -60003.3320+566930.3125j,  316108.0312-2534.6602j,
+         -278758.6250-286772.8438j,  -99148.2031+141427.1719j],
+        [-123549.7266-117745.7031j,   29494.4316+299663.6250j,
+          892673.0625+0.0000j,  123809.5547-337977.7188j,
+         -187054.2188+115169.7891j,   56510.7383+824029.7500j,
+          347948.0000-10480.0703j, -194997.6719-171329.5938j],
+        [  25086.9844-128895.8984j, -180515.4688-362784.9375j,
+          123809.5547+337977.7188j,  857850.5625+0.0000j,
+          386227.1875-195151.2500j, -301688.6562+117594.9141j,
+           -5905.2197+697171.1875j,  175821.2812+23194.7324j],
+        [  64204.0430-39669.5938j,  -60003.3320-566930.3125j,
+         -187054.2188-115169.7891j,  386227.1875+195151.2500j,
+          683439.9375+0.0000j,   90717.5000-249569.8125j,
+         -225344.0312+242898.7188j,   54673.5938+239450.0469j],
+        [-111450.4844+118976.4844j,  316108.0312+2534.6602j,
+           56510.7383-824029.7500j, -301688.6562-117594.9141j,
+           90717.5000+249569.8125j,  944404.6875+0.0000j,
+           44709.7578-305063.6250j, -139964.2344+200239.0469j],
+        [-100929.3750-28066.1016j, -278758.6250+286772.8438j,
+          347948.0000+10480.0703j,   -5905.2197-697171.1875j,
+         -225344.0312-242898.7188j,   44709.7578+305063.6250j,
+          710608.1250+0.0000j,  -40602.5508-164594.3125j],
+        [  30292.9414-13613.3086j,  -99148.2031-141427.1719j,
+         -194997.6719+171329.5938j,  175821.2812-23194.7324j,
+           54673.5938-239450.0469j, -139964.2344-200239.0469j,
+          -40602.5508+164594.3125j,  226326.3438+0.0000j]]
+    sps_cov = [[ 59.99381678 +0.j        ,  36.2777756  +8.19686646j,
+         -5.67063663+39.86491254j, -11.1398164 +56.17865661j,
+         -9.92072053+27.66251958j],
+       [ 36.2777756  -8.19686646j,  97.66451444 +0.j        ,
+         59.73049174 -2.75625481j,  -6.35705229+45.28852966j,
+        -11.14670862+89.09208959j],
+       [ -5.67063663-39.86491254j,  59.73049174 +2.75625481j,
+         83.27528782 +0.j        ,  30.00725425 +7.16057528j,
+        -13.25825404+56.99093731j],
+       [-11.1398164 -56.17865661j,  -6.35705229-45.28852966j,
+         30.00725425 -7.16057528j,  58.77681126 +0.j        ,
+         38.88942797 -0.44792285j],
+       [ -9.92072053-27.66251958j, -11.14670862-89.09208959j,
+        -13.25825404-56.99093731j,  38.88942797 +0.44792285j,
+         84.9121936  +0.j        ]]
     # Deep_RootMUSIC_Rx = [[[162162.7500+0.0000j, -53419.5820-29567.0664j,
     # 72869.0625+45681.9219j,  18064.2520-29616.1172j,
     # 138235.3750-11426.2324j, -69004.9141-33662.0234j,
@@ -480,8 +566,15 @@ if __name__ == "__main__":
     # -69894.4453+33309.3672j,  78712.8281+0.0000j]]]
 
     # M = 3
-    # RootMUSIC_Rx_eig = np.sort(np.real(LA.eigvals(RootMUSIC_Rx)))[::-1]
-    # Deep_RootMUSIC_Rx_eig = np.sort(np.real(LA.eigvals(Deep_RootMUSIC_Rx))[0])[::-1]
+    # empirical_eig = np.sort(np.real(LA.eigvals(empirical_cov)))[::-1]
+    # norm_empirical_eig = empirical_eig / np.max(empirical_eig)
+    
+    # sps_eig = np.sort(np.real(LA.eigvals(sps_cov)))[::-1]
+    # norm_sps_eig = sps_eig / np.max(sps_eig)
+    
+    # ssn_eig = np.sort(np.real(LA.eigvals(ssn_cov)))[::-1]
+    # norm_ssn_eig = ssn_eig / np.max(ssn_eig)
+    
     # algorithm = "ssn"
     # plt.style.use('default')
     # fig = plt.figure(figsize=(7, 5.5))
@@ -491,12 +584,17 @@ if __name__ == "__main__":
     # plt.ylabel("Eigenvalues [λ]")
     # plt.xlim([0.85, 8.15])
     # plt.ylim([-0.02, 1.02])
-    # plt.stem([i + 1 + 0.05 for i in range(RootMUSIC_Rx_eig.shape[0])],RootMUSIC_Rx_eig / np.max(RootMUSIC_Rx_eig), '#842ab0', label="R-MUSIC")
-    # markerline, stemlines, baseline = plt.stem([i + 1 - 0.05 for i in range(Deep_RootMUSIC_Rx_eig.shape[0])],Deep_RootMUSIC_Rx_eig / np.max(Deep_RootMUSIC_Rx_eig),'#039403', markerfmt='>', label="SubNet+R-MUSIC")
+    
+    # markerline, stemlines, baseline = plt.stem([i + 1 + 0.05 for i in range(empirical_eig.shape[0])],norm_empirical_eig, '#842ab0', label="Empirical")
     # plt.setp(stemlines, 'color', plt.getp(markerline,'color'))
-    # # plt.setp(stemlines, 'linestyle', 'dashed')
+    # plt.setp(stemlines, 'linestyle', 'dashed')
+    # markerline, stemlines, baseline = plt.stem([i + 1 + 0.05 for i in range(norm_sps_eig.shape[0])],norm_sps_eig, '#0f83f5', label="SPS")
+    # plt.setp(stemlines, 'color', plt.getp(markerline,'color'))
+    # plt.setp(stemlines, 'linestyle', 'dashed')
+    # markerline, stemlines, baseline = plt.stem([i + 1 - 0.05 for i in range(norm_ssn_eig.shape[0])], norm_ssn_eig,'#039403', markerfmt='>', label="SubNet")
+    # plt.setp(stemlines, 'color', plt.getp(markerline,'color'))
     # plt.legend()
-    # plt.savefig("{}.pdf".format(simulation),bbox_inches='tight')
+    # plt.savefig("eigenvalues.pdf",bbox_inches='tight')
 
     # # markerline, stemlines, baseline = plt.stem(x, y, markerfmt='o', label='pcd')
     # # plt.setp(stemlines, 'color', plt.getp(markerline,'color'))

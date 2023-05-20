@@ -6,11 +6,9 @@ import random
 import torch.nn as nn
 import warnings
 import time
-import mplcursors
 import copy
 import torch.optim as optim
 from datetime import datetime
-from itertools import permutations
 from torch.autograd import Variable
 from tqdm import tqdm
 from torch.optim import lr_scheduler
@@ -36,9 +34,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # saving_path = r"C:\Users\dorsh\OneDrive\שולחן העבודה\My Drive\Thesis\DeepRootMUSIC\Code\Weights\Models"
 saving_path = r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights\Models"
 
-def run_simulation(Model_Train_DataSet,
-                    Model_Test_DataSet,
-                    tau, N, optimizer_name, lr_val, Schedular,
+def run_simulation(train_dataset,
+                    test_dataset,
+                    tau, optimizer_name, lr_val, Schedular,
                     weight_decay_val, step_size_val, gamma_val, num_epochs,
                     model_name,
                     Bsize,
@@ -48,7 +46,8 @@ def run_simulation(Model_Train_DataSet,
                     load_flag = False, loading_path = None,
                     Plot = True, dataset_mb = None,
                     Plot_Spectrum_flag = False,
-                    saving_path = saving_path):
+                    saving_path = saving_path,
+                    model_type = "SubNet"):
   
     ## Set the seed for all available random operations
     set_unified_seed()
@@ -62,32 +61,17 @@ def run_simulation(Model_Train_DataSet,
     print("date and time =", dt_string)
 
     ############################
-    ###    Compare Models    ###
-    ############################
-
-    ## Transform model-based test dataset into DataLoader Object:
-    '''
-    if dataset_mb != None:
-      print("Test_DataSet", len(Model_Test_DataSet))
-      dataset_mb = torch.utils.data.DataLoader(dataset_mb,
-                                batch_size=1,
-                                shuffle=False,
-                                drop_last=False)
-      
-    ## Compute MUSIC and Root-MUSIC algorithms overall loss:
-      MUSIC_loss = evaluate_model_based(dataset_mb, Sys_Model)
-      # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
-      # print("Spatial Smoothing Root-MUSIC Test loss = {}".format(SPS_RootMUSIC_loss))
-      print("MUSIC Test loss = {}".format(MUSIC_loss))
-      # print("Spatial Smoothing MUSIC Test loss = {}".format(SPS_MUSIC_loss))
-    '''
-
-    ############################
     ### Model initialization ###
     ############################
 
     ## Create a model from `Deep_Root_Net`
-    model = Deep_Root_Net_AntiRectifier(tau=tau)
+    if model_type.startswith("DA-MUSIC"):
+      model = Deep_Augmented_MUSIC(N=Sys_Model.N, T=Sys_Model.T, M=Sys_Model.M)
+    elif model_type.startswith("CNN_DOA"):
+      model = CNN_DOA(N=Sys_Model.N, grid_size=361)
+    else:
+      model = Deep_Root_Net_AntiRectifier(tau=tau)
+
     # Load it to the specified device, either gpu or cpu
     model = model.to(device)                                   
     
@@ -111,14 +95,18 @@ def run_simulation(Model_Train_DataSet,
         lr_decay = lr_scheduler.StepLR(optimizer, step_size=step_size_val, gamma=gamma_val)
 
     ## Loss criterion
-    criterion = RMSPELoss()                                     # Periodic rmse loss
+    if model_type.startswith("CNN_DOA"):
+      criterion = nn.BCELoss()
+      eval_criterion = RMSPELoss() 
+    else:
+      criterion = RMSPELoss()
 
     ############################
     ###  Data Organization   ###
     ############################
 
     ## Split data into Train and Validation
-    Train_DataSet, Valid_DataSet = train_test_split(Model_Train_DataSet, test_size=0.1, shuffle = True)
+    Train_DataSet, Valid_DataSet = train_test_split(train_dataset, test_size=0.1, shuffle = True)
     print("Training DataSet size", len(Train_DataSet))
     print("Validation DataSet size", len(Valid_DataSet))
 
@@ -133,8 +121,8 @@ def run_simulation(Model_Train_DataSet,
                                     drop_last=False)
     
     ## Transform Test Dataset into DataLoader Object
-    print("Test_DataSet", len(Model_Test_DataSet))
-    Test_data = torch.utils.data.DataLoader(Model_Test_DataSet,
+    print("Test_DataSet", len(test_dataset))
+    Test_data = torch.utils.data.DataLoader(test_dataset,
                                     batch_size=1,
                                     shuffle=False,
                                     drop_last=False)
@@ -146,7 +134,7 @@ def run_simulation(Model_Train_DataSet,
     ## Train using the "train_model" function
     model, loss_train_list, loss_valid_list = train_model(model, Train_data, Valid_data,
                  optimizer, criterion, epochs= num_epochs, model_name=model_name, scheduler=lr_decay,
-                    checkpoint_path=r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights" + '\ckpt-{}.pk')
+                    checkpoint_path=r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights" + '\ckpt-{}.pk', model_type=model_type)
     
     ## Save model Best weights
     torch.save(model.state_dict(), saving_path + '\\model_' + dt_string_for_save)
@@ -158,26 +146,18 @@ def run_simulation(Model_Train_DataSet,
     ## Plot learning and validation loss curves
     if Plot:
       plot_learning_curve(list(range(num_epochs)), loss_train_list, loss_valid_list)
-
-    ## Compute the model Overall loss
-    DeepRootTest_loss = evaluate_model(model, Test_data, criterion)
-    print("Deep Root-MUSIC Test loss = {}".format(DeepRootTest_loss))
-    # print("Root-MUSIC Test loss = {}".format(RootMUSIC_loss))
-    # print("MUSIC Test loss = {}".format(MUSIC_loss))
-
-    ############################
-    ###   Model's spectrum   ###
-    ############################
-    if Plot_Spectrum_flag:
-      pass
-      # plot_spectrum(model)
-    
-    return model, loss_train_list, loss_valid_list, DeepRootTest_loss
+    if model_type.startswith("CNN_DOA"):
+      model_loss = -1
+    else:
+      ## Compute the model Overall loss
+      model_loss = evaluate_model(model, Test_data, criterion, model_type=model_type)
+      print("{} Test loss = {}".format(model_type, model_loss))
+    return model, loss_train_list, loss_valid_list, model_loss
 
 
 def train_model(model, Train_data, Valid_data,
                  optimizer, criterion, epochs,
-                 model_name, scheduler=None, checkpoint_path=None):
+                 model_name, scheduler=None, checkpoint_path=None, model_type="SubNet"):
     PRINT_WEIGHTS = False
     since = time.time()
     loss_train_list = []
@@ -185,32 +165,35 @@ def train_model(model, Train_data, Valid_data,
     min_valid_loss = np.inf
     print("\n---Start Training Stage ---\n")
 
-    for epoch in tqdm(range(epochs)):
+    for epoch in range(epochs):
         ## Train the model for a specific epoch
         train_length = 0
         model.train()
         Overall_train_loss = 0.0
         model = model.to(device)
         
-        for i, data in enumerate(Train_data):
+        for i, data in enumerate(tqdm(Train_data)):
+            Train_data
             Rx, DOA = data
             # print("DOA", DOA * R2D)
             train_length += DOA.shape[0]
             Rx = Variable(Rx, requires_grad=True).to(device)
             DOA = Variable(DOA, requires_grad=True).to(device)
-            
-            ## Compute model DOA predictions  
-            model_parameters = model(Rx, DOA.shape[1])
 
-            # For training Deep Augmented MUSIC
-            # model_parameters = model(Rx)
-                                        
-            # DOA_predictions = model_parameters
-            DOA_predictions = model_parameters[0]
-            # DOA_predictions = model_parameters
+            if model_type.startswith("DA-MUSIC") or model_type.startswith("CNN_DOA"):
+              # Deep Augmented MUSIC or CNN DOA
+              model_parameters = model(Rx)
+              DOA_predictions = model_parameters
+            else:
+              # Default - SubSpaceNet
+              model_parameters = model(Rx, DOA.shape[1])
+              DOA_predictions = model_parameters[0]
 
             ## Compute training loss
-            train_loss = criterion(DOA_predictions, DOA)
+            if model_type.startswith("CNN_DOA"):
+              train_loss = criterion(DOA_predictions.float(), DOA.float())
+            else:
+              train_loss = criterion(DOA_predictions, DOA)
 
             ## Back-propagation stage
             try:                         
@@ -223,18 +206,21 @@ def train_model(model, Train_data, Valid_data,
             optimizer.step()                                                     
             
             model.zero_grad()                                                   # reset the gradients back to zero
-            Overall_train_loss += train_loss.item()                             # add the batch training loss to epoch loss
+            if model_type.startswith("CNN_DOA") or model_type.startswith("DA-MUSIC"):
+              Overall_train_loss += train_loss.item() * len(data[0])                             # add the batch training loss to epoch loss
+            else:
+              Overall_train_loss += train_loss.item()                            # add the batch training loss to epoch loss
 
             # print("iteration loss : ",train_loss.item())
-            # if i % 50 == 0:
+            # if i % 100 == 0:
             #   print("Iteration = {}, accumulated loss= {}".format(i+1, Overall_train_loss / (i+1)))
             
             if PRINT_WEIGHTS:
-              for name, param in model.named_parameters():
-                if param.grad is not None:
-                  print(name, param.grad.sum())
+                for name, param in model.named_parameters():
+                  if param.grad is not None:
+                    print(name, param.grad.sum())
                 else:
-                  print(name, param.grad)
+                    print(name, param.grad)
         # print("len(Train_data)", len(Train_data))
         # print("Overall_train_loss = {}, train_length = {}".format(Overall_train_loss, train_length))
         Overall_train_loss = Overall_train_loss / train_length # compute the epoch training loss
@@ -252,14 +238,21 @@ def train_model(model, Train_data, Valid_data,
                 valid_length += DOA.shape[0]
                 Rx = Rx.to(device)
                 DOA = DOA.to(device)
-                model_parameters = model(Rx, DOA.shape[1])                            # Compute prediction of DOA's
-                DOA_predictions = model_parameters[0]
-                # model_parameters = model(Rx)                            # Compute prediction of DOA's
-                # DOA_predictions = model_parameters
-                # DOA_predictions = model_parameters
-                eval_loss = criterion(DOA_predictions, DOA)                     # Compute evaluation predictions loss
+                if model_type.startswith("DA-MUSIC") or model_type.startswith("CNN_DOA"):
+                  # Deep Augmented MUSIC
+                  model_parameters = model(Rx)
+                  DOA_predictions = model_parameters
+                else:
+                  # Default - SubSpaceNet
+                  model_parameters = model(Rx, DOA.shape[1])
+                  DOA_predictions = model_parameters[0]
+                if model_type.startswith("CNN_DOA"):
+                  eval_loss = criterion(DOA_predictions.float(), DOA.float())
+                  # doa_label, doa_prediction = get_k_angles(181, 2, DOA_predictions, model_parameters)
+                  # prmse = eval_criterion(doa_label, doa_prediction)
+                else:
+                  eval_loss = criterion(DOA_predictions, DOA)                 # Compute evaluation predictions loss
                 Overall_valid_loss += eval_loss.item()                          # add the batch evaluation loss to epoch loss
-            
             Overall_valid_loss = Overall_valid_loss / valid_length
             loss_valid_list.append(Overall_valid_loss)
         
@@ -301,7 +294,7 @@ def plot_learning_curve(epoch_list, train_loss, Validation_loss):
     plt.legend(loc='best')
     plt.show()
 
-def evaluate_model(model, Data, criterion, plot_spec = False, figures = None):
+def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, model_type="SubNet"):
     loss = 0.0
     model.eval()
     test_length = 0
@@ -311,8 +304,20 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None):
             test_length += DOA.shape[0]
             Rx = Rx.to(device)
             DOA = DOA.to(device)
-            model_parameters = model(Rx, DOA.shape[1])                            # Compute prediction of DOA's
-            DOA_predictions = model_parameters[0]
+            if model_type.startswith("DA-MUSIC"):
+              # Deep Augmented MUSIC
+              model_parameters = model(Rx)
+              DOA_predictions = model_parameters
+            elif model_type.startswith("CNN_DOA"):
+              # CNN
+              model_parameters = model(Rx)
+              DOA_predictions = model_parameters
+              DOA_predictions = get_k_angles(361, DOA.shape[1], DOA_predictions[0]) * D2R
+              DOA_predictions = DOA_predictions.view(1, DOA_predictions.shape[0])
+            else:
+              # Default - SubSpaceNet
+              model_parameters = model(Rx, DOA.shape[1])
+              DOA_predictions = model_parameters[0]
             eval_loss = criterion(DOA_predictions, DOA)                                     # Compute evaluation predictions loss
             loss += eval_loss.item()                                          # add the batch evaluation loss to epoch loss  
         loss = loss / test_length

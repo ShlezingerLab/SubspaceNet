@@ -41,3 +41,8 @@ def set_unified_seed(seed:int = 42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+def get_k_angles(grid_size, k:int, prediction):
+    angels_grid = torch.linspace(-90, 90, grid_size)
+    doa_prediction = angels_grid[torch.topk(prediction.flatten(), k).indices]
+    return doa_prediction
