@@ -9,49 +9,150 @@ Edited: 17/03/23
 Purpose
 ----------
 This script defines some helpful functions:
-    * sum_of_diag: returns the some of each diagonal in a given matrix 
-    * find_roots: solves polynomial equation defines by polynomial coefficients 
-    * set_unified_seed: Sets unified seed for all random attributed in the simulation
+    * sum_of_diag: returns the some of each diagonal in a given matrix.
+    * find_roots: solves polynomial equation defines by polynomial coefficients. 
+    * set_unified_seed: Sets unified seed for all random attributed in the simulation.
+    * get_k_angles: Retrieves the top-k angles from a prediction tensor.
+    * get_k_peaks: Retrieves the top-k peaks (angles) from a prediction tensor using peak finding.
 """
-
+# Imports
 import numpy as np
 import torch
 import random
 import scipy
 
+# Constants
 R2D = 180 / np.pi 
 D2R = 1 / R2D 
 
-def sum_of_diag(matrix:np.ndarray) -> list:
-    coeff = []
-    diag_index = np.linspace(-matrix.shape[0] + 1, matrix.shape[0] + 1, 2 * matrix.shape[0] - 1, endpoint = False, dtype = int)
+# def sum_of_diag(matrix: np.NDarray):
+# def sum_of_diag(matrix: np.ndarray) -> list:
+def sum_of_diag(matrix: np.ndarray):
+    """Calculates the sum of diagonals in a square matrix.
+
+    Args:
+        matrix (np.ndarray): Square matrix for which diagonals need to be summed.
+
+    Returns:
+        list: A list containing the sums of all diagonals in the matrix, from left to right.
+
+    Raises:
+        None
+
+    Examples:
+        >>> matrix = np.array([[1, 2, 3],
+                               [4, 5, 6],
+                               [7, 8, 9]])
+        >>> sum_of_diag(matrix)
+        [7, 12, 15, 8, 3]
+
+    """
+    diag_sum = []
+    diag_index = np.linspace(-matrix.shape[0] + 1, matrix.shape[0] + 1,
+                    2 * matrix.shape[0] - 1, endpoint = False, dtype = int)
     for idx in diag_index:
-        coeff.append(np.sum(matrix.diagonal(idx)))
-    return coeff
-    
-def find_roots(coeff):
-    coeff = np.array(coeff)
-    A = np.diag(np.ones((len(coeff)-2,), coeff.dtype), -1)
-    A[0,:] = -coeff[1:] / coeff[0]
+        diag_sum.append(np.sum(matrix.diagonal(idx)))
+    return diag_sum
+
+# def find_roots(coefficients: list) -> np.ndarray:
+def find_roots(coefficients: list):
+    """Finds the roots of a polynomial defined by its coefficients.
+
+    Args:
+        coefficients (list): List of polynomial coefficients in descending order of powers.
+
+    Returns:
+        np.ndarray: An array containing the roots of the polynomial.
+
+    Raises:
+        None
+
+    Examples:
+        >>> coefficients = [1, -5, 6]  # x^2 - 5x + 6
+        >>> find_roots(coefficients)
+        array([3., 2.])
+
+    """
+    coefficients = np.array(coefficients)
+    A = np.diag(np.ones((len(coefficients)-2,), coefficients.dtype), -1)
+    A[0,:] = -coefficients[1:] / coefficients[0]
     roots = np.array(np.linalg.eigvals(A))
     return roots
     
-def set_unified_seed(seed:int = 42):
-    """Sets unified seed for all random attributed in the simulation
-    
+def set_unified_seed(seed: int = 42):
+    """
+    Sets the seed value for random number generators in Python libraries.
+
     Args:
-        seed (int, optional): seed value. Defaults to 42.
-    """    
+        seed (int): The seed value to set for the random number generators. Defaults to 42.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        >>> set_unified_seed(42)
+
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-def get_k_angles(grid_size, k:int, prediction):
-    angels_grid = torch.linspace(-90, 90, grid_size)
-    doa_prediction = angels_grid[torch.topk(prediction.flatten(), k).indices]
+# def get_k_angles(grid_size: float, k: int, prediction: torch.Tensor) -> torch.Tensor:
+def get_k_angles(grid_size: float, k: int, prediction: torch.Tensor):
+    """
+    Retrieves the top-k angles from a prediction tensor.
+
+    Args:
+        grid_size (float): The size of the angle grid (range) in degrees.
+        k (int): The number of top angles to retrieve.
+        prediction (torch.Tensor): The prediction tensor containing angle probabilities, sizeof equal to grid_size .
+
+    Returns:
+        torch.Tensor: A tensor containing the top-k angles in degrees.
+
+    Raises:
+        None
+
+    Examples:
+        >>> grid_size = 6
+        >>> k = 3
+        >>> prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
+        >>> get_k_angles(grid_size, k, prediction)
+        tensor([ 90., -18.,   54.])
+
+    """
+    angles_grid = torch.linspace(-90, 90, grid_size)
+    doa_prediction = angles_grid[torch.topk(prediction.flatten(), k).indices]
     return doa_prediction
 
-def get_k_peaks(grid_size, k:int, prediction):
+
+# def get_k_peaks(grid_size, k: int, prediction) -> torch.Tensor:
+def get_k_peaks(grid_size: int, k: int, prediction: torch.Tensor):
+    """
+    Retrieves the top-k peaks (angles) from a prediction tensor using peak finding.
+
+    Args:
+        grid_size (int): The size of the angle grid (range) in degrees.
+        k (int): The number of top peaks (angles) to retrieve.
+        prediction (torch.Tensor): The prediction tensor containing the peak values.
+
+    Returns:
+        torch.Tensor: A tensor containing the top-k angles in degrees.
+
+    Raises:
+        None
+
+    Examples:
+        >>> grid_size = 6
+        >>> k = 3
+        >>> prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
+        >>> get_k_angles(grid_size, k, prediction)
+        tensor([ 90., -18.,   54.])
+
+    """
     angels_grid = torch.linspace(-90, 90, grid_size)
     peaks, peaks_data = scipy.signal.find_peaks(prediction.detach().numpy().flatten(),\
                             prominence  = 0.05, height = 0.01)
@@ -61,3 +162,25 @@ def get_k_peaks(grid_size, k:int, prediction):
         doa_prediction = torch.cat((doa_prediction, torch.Tensor(np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)), 0)
 
     return doa_prediction[:k]
+
+
+if __name__ == "__main__":
+    # sum_of_diag example
+    matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sum_of_diag(matrix)
+    
+    # find_roots example
+    coefficients = [1, -5, 6]
+    find_roots(coefficients)
+    
+    # get_k_angles example
+    grid_size = 6
+    k = 3
+    prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
+    get_k_angles(grid_size, k, prediction)
+    
+    # get_k_peaks example
+    grid_size = 6
+    k = 3
+    prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
+    get_k_peaks(grid_size, k, prediction)
