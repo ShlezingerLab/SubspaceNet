@@ -19,28 +19,28 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
 
     Args:
     -----
-        scenario (str): "NarrowBand" or "BroadBand" signals.
-        mode (str): "coherent" or "non-coherent" nature of signals.
-        N (int): number of array sensors.
-        M (int): number of sources.
-        T (int): number of snapshots.
-        samples_size (int): dataset size.
-        tau (int): amount of lags for auto-correlation, relevant only for SubspaceNet model..
-        model_type (str): the model type.
-        Save (bool, optional): wether or not save dataset. Defaults to False.
-        dataset_path (str, optional): path for saving dataset. Defaults to None.
-        true_doa (list, optional): predefined angels. Defaults to None.
-        SNR (float, optional): SNR for samples creations. Defaults to 10.
-        eta (float, optional): sensors distance deviation from ideal array,
-                        relevant for array-mismatches scenarios. Defaults to 0.
-        geo_noise_var (float, optional): steering vector added noise,
-                        relevant for array-mismatches scenarios. Defaults to 0.
-        phase (str, optional): test or training phase for dataset,
-                        relevant only for CNN model. Defaults to None.
+    scenario (str): "NarrowBand" or "BroadBand" signals.
+    mode (str): "coherent" or "non-coherent" nature of signals.
+    N (int): number of array sensors.
+    M (int): number of sources.
+    T (int): number of snapshots.
+    samples_size (int): dataset size.
+    tau (int): amount of lags for auto-correlation, relevant only for SubspaceNet model..
+    model_type (str): the model type.
+    Save (bool, optional): wether or not save dataset. Defaults to False.
+    dataset_path (str, optional): path for saving dataset. Defaults to None.
+    true_doa (list, optional): predefined angels. Defaults to None.
+    SNR (float, optional): SNR for samples creations. Defaults to 10.
+    eta (float, optional): sensors distance deviation from ideal array,
+                    relevant for array-mismatches scenarios. Defaults to 0.
+    geo_noise_var (float, optional): steering vector added noise,
+                    relevant for array-mismatches scenarios. Defaults to 0.
+    phase (str, optional): test or training phase for dataset,
+                    relevant only for CNN model. Defaults to None.
 
     Returns:
     --------
-        tuple: the desired dataset comprised from (X-samples, Y-labels)
+    tuple: the desired dataset comprised from (X-samples, Y-labels)
     """ 
     generic_dataset = []
     model_dataset = []
@@ -55,7 +55,7 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
             doa_permutations.append(list(comb))
     
     if model_type.startswith("CNN") and phase.startswith("train"):
-        for snr_addition in [0]:
+        for snr_addition in [0, 1]:
             for i, doa in tqdm(enumerate(doa_permutations)):
                 # Samples model creation
                 system_model.set_doa(doa)             
@@ -109,9 +109,13 @@ def autocorr_matrix(X, lag):
     This function compute the autocorrelation matrices of the T samples
     x(t), t=1, ... ,T for a given lag.
     ------- Input ------
-    @ X(input) = Samples matrix input shape [N, T] 
-    @ lag(input) = the requested delay of the Autocorrelation calculation
-    @ Rx_lag = the autocorrelation matrix in a given lag []
+    X(input): Samples matrix input shape [N, T] 
+    lag(input) = the requested delay of the Autocorrelation calculation
+    Rx_lag = the autocorrelation matrix in a given lag []
+    
+    Returns:
+    --------
+    
     '''
     Rx_lag = torch.zeros(X.shape[0], X.shape[0], dtype=torch.complex128).to(device)
     for t in range(X.shape[1] - lag):
@@ -129,12 +133,12 @@ def create_autocorr(X, tau):
     the autocorrelation tau matrices, for lag 0 to tau
     {R_x(lag)}, lag  = 0, ..., tau
     
-    Input:
-    --------------------------------------------
+    Args:
+    ------
     X: observation matrix input, from size (BS, N, T)
     tau: maximal time difference for auto-correlation tensor
     
-    Output:
+    Returns:
     --------------------------------------------
     Rx_autocorr: Tensor contains all the auto-correlation matrices,
                  from size (Batch size, tau, 2N, N)
