@@ -84,14 +84,20 @@ class  Samples(System_model):
     '''
     
     def __init__(self, scenario:str , N:int, M:int,
-                 DOA:list, observations:int, freq_values:list = None):
+                    observations:int, freq_values:list = None):
         super().__init__(scenario, N, M, freq_values)
         self.T = observations
-        if DOA == None:
-          self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
-        else: 
-          self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
+        # if DOA == None:
+        #   self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
+        # else: 
+        #   self.DOA = (np.pi / 180) * np.array(DOA)                              # define DOA angels
     
+    def set_doa(self, doa):
+        if doa == None:
+            self.DOA = (np.pi / 180) * np.array(create_DOA_with_gap(M = self.M, gap = 15)) # (~0.2 rad)
+        else: 
+          self.DOA = (np.pi / 180) * np.array(doa)                              # define DOA angels
+        
     def samples_creation(self, mode, N_mean= 0, N_Var= 1, S_mean= 0, S_Var= 1, SNR= 10, eta = 0, geo_noise_var = 0):
         '''
         @mode = represent the specific mode in the specific scenario

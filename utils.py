@@ -17,6 +17,10 @@ This script defines some helpful functions:
 import numpy as np
 import torch
 import random
+import scipy
+
+R2D = 180 / np.pi 
+D2R = 1 / R2D 
 
 def sum_of_diag(matrix:np.ndarray) -> list:
     coeff = []
@@ -46,3 +50,14 @@ def get_k_angles(grid_size, k:int, prediction):
     angels_grid = torch.linspace(-90, 90, grid_size)
     doa_prediction = angels_grid[torch.topk(prediction.flatten(), k).indices]
     return doa_prediction
+
+def get_k_peaks(grid_size, k:int, prediction):
+    angels_grid = torch.linspace(-90, 90, grid_size)
+    peaks, peaks_data = scipy.signal.find_peaks(prediction.detach().numpy().flatten(),\
+                            prominence  = 0.05, height = 0.01)
+    peaks = peaks[np.argsort(peaks_data['peak_heights'])[::-1]]
+    doa_prediction = angels_grid[peaks]
+    while(doa_prediction.shape[0] < k):
+        doa_prediction = torch.cat((doa_prediction, torch.Tensor(np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)), 0)
+
+    return doa_prediction[:k]

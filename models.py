@@ -132,7 +132,8 @@ class Deep_Root_Net(nn.Module):
         return DOA, DOA_all, roots, Rz, sorted_angels
 
 class Deep_Root_Net_AntiRectifier(nn.Module):
-    def __init__(self, tau):
+    def __init__(self, tau, M):
+        self.M = M
         self.tau = tau
         super(Deep_Root_Net_AntiRectifier, self).__init__()
         self.conv1 = nn.Conv2d(self.tau, 16, kernel_size = 2)
@@ -225,7 +226,7 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
         Kx_Out = torch.stack(Kx_list, dim = 0)
         return Kx_Out
     
-    def forward(self, New_Rx_tau, M):
+    def forward(self, New_Rx_tau):
         ## Input shape of signal X(t): [Batch size, N, T]
         self.N = New_Rx_tau.shape[-1]
         self.BATCH_SIZE = New_Rx_tau.shape[0]
@@ -263,7 +264,7 @@ class Deep_Root_Net_AntiRectifier(nn.Module):
 
         ## Rest of Root MUSIC algorithm
         # print(Rz)
-        DOA, DOA_all, roots = self.Root_MUSIC(Rz, M)                      # Output shape [Batch size, M]
+        DOA, DOA_all, roots = self.Root_MUSIC(Rz, self.M)                      # Output shape [Batch size, M]
         return DOA, DOA_all, roots, Rz
     
 class Deep_Augmented_MUSIC(nn.Module):

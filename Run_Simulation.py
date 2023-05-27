@@ -14,7 +14,7 @@ from tqdm import tqdm
 from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 
-from DataLoaderCreation import *
+from data_handler import *
 from Signal_creation import *
 from methods import *
 from models import *
@@ -70,7 +70,7 @@ def run_simulation(train_dataset,
     elif model_type.startswith("CNN_DOA"):
       model = CNN_DOA(N=Sys_Model.N, grid_size=361)
     else:
-      model = Deep_Root_Net_AntiRectifier(tau=tau)
+      model = Deep_Root_Net_AntiRectifier(tau=tau, M=Sys_Model.M)
 
     # Load it to the specified device, either gpu or cpu
     model = model.to(device)                                   
@@ -261,7 +261,7 @@ def train_model(model, Train_data, Valid_data,
                          epochs, Overall_train_loss, Overall_valid_loss))                       # display the epoch training loss
         print('lr {}'.format(optimizer.param_groups[0]['lr']))
         
-        ## save model weights for better validation performences
+        ## save model weights for better validation performances
         if min_valid_loss > Overall_valid_loss:
             print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{Overall_valid_loss:.6f}) \t Saving The Model')
             min_valid_loss = Overall_valid_loss
@@ -312,7 +312,8 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, mo
               # CNN
               model_parameters = model(Rx)
               DOA_predictions = model_parameters
-              DOA_predictions = get_k_angles(361, DOA.shape[1], DOA_predictions[0]) * D2R
+              # DOA_predictions = get_k_angles(361, DOA.shape[1], DOA_predictions[0]) * D2R
+              DOA_predictions = get_k_peaks(361, DOA.shape[1], DOA_predictions[0]) * D2R
               DOA_predictions = DOA_predictions.view(1, DOA_predictions.shape[0])
             else:
               # Default - SubSpaceNet
