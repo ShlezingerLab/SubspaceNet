@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from System_Model import System_model
+from system_model import SystemModel
 from Signal_creation import Samples
 from tqdm import tqdm
 import random
@@ -54,7 +54,7 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
             doa_permutations.append(list(comb))
     
     if model_type.startswith("CNN") and phase.startswith("train"):
-        for snr_addition in [0, 1]:
+        for snr_addition in [0]:
             for i, doa in tqdm(enumerate(doa_permutations)):
                 # Samples model creation
                 system_model.set_doa(doa)             
@@ -71,9 +71,7 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
                 generic_dataset.append((X,Y))
     else:
         for i in tqdm(range(samples_size)):
-            # Samples model creation      
-            # system_model = Samples(scenario= scenario, N= N, M= M,
-            #                 DOA= true_doa, observations=T, freq_values=[0, 500])
+            # Samples model creation
             system_model.set_doa(true_doa)
             # Observations matrix creation
             X = torch.tensor(system_model.samples_creation(mode = mode, N_mean= 0,

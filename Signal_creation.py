@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from System_Model import *
+from system_model import *
 
 def create_DOA_with_gap(M:int, gap:float) :        
     """Create sources with minimal gap value for simulations
@@ -60,7 +60,7 @@ def create_closely_spaced_DOA(M:int, gap:float):
             DOA.append(candidate_DOA)
     return np.array(DOA)
 
-class  Samples(System_model):
+class  Samples(SystemModel):
     '''
     Class used for defining and creating signals and observations.
     inherit from SystemModel class
@@ -122,11 +122,11 @@ class  Samples(System_model):
             
             # TODO: check if the data creation became much slower
             
-            for idx in range(self.f_sampling):
+            for idx in range(self.f_sampling["Broadband"]):
                 
                 # mapping from index i to frequency f
-                if idx > int(self.f_sampling) // 2:
-                    f = - int(self.f_sampling) + idx
+                if idx > int(self.f_sampling["Broadband"]) // 2:
+                    f = - int(self.f_sampling["Broadband"]) + idx
                 else:
                     f = idx
                 A = np.array([self.steering_vec(theta, f) for theta in self.DOA]).T
@@ -148,7 +148,8 @@ class  Samples(System_model):
         
         # for Broadband scenario Noise represented in the frequency domain
         elif self.scenario.startswith("Broadband"):
-            noise = np.sqrt(N_Var) * (np.sqrt(2) / 2) * (np.random.randn(self.N, len(self.time_axis)) + 1j * np.random.randn(self.N, len(self.time_axis))) + N_mean
+            noise = np.sqrt(N_Var) * (np.sqrt(2) / 2) * (np.random.randn(self.N, len(self.time_axis["Broadband"]))\
+                            + 1j * np.random.randn(self.N, len(self.time_axis["Broadband"]))) + N_mean
             return np.fft.fft(noise)
     
     def signal_creation(self, mode:str, S_mean = 0, S_Var = 1, SNR = 10):
@@ -172,39 +173,40 @@ class  Samples(System_model):
         ## Broadband signal creation
         if self.scenario.startswith("Broadband_simple"):
             # generate M random carriers
-            carriers = np.random.choice(self.f_rng, self.M).reshape((self.M, 1))
+            carriers = np.random.choice(self.f_rng["Broadband"], self.M).reshape((self.M, 1))
                         
             # create M non-coherent signals
             if mode == "non-coherent":
                 carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(self.M) + 1j * np.random.randn(self.M))
-                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers @ self.time_axis.reshape((1, len(self.time_axis)))).T
+                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers\
+                                @ self.time_axis["Broadband"].reshape((1, len(self.time_axis["Broadband"])))).T
                 return np.fft.fft(carriers_signals.T)
             
             # Coherent signals: same amplitude and phase for all signals 
             if mode == "coherent":
                 carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
-                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers[0] * self.time_axis)
+                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers[0] * self.time_axis["Broadband"])
                 return np.tile(np.fft.fft(carriers_signals), (self.M, 1))
 
         ## Broadband signal creation
         if self.scenario.startswith("Broadband_OFDM"):
-            num_sub_carriers = self.max_freq   # number of subcarriers per signal
+            num_sub_carriers = self.max_freq["Broadband"]   # number of subcarriers per signal
             # create M non-coherent signals
-            signal = np.zeros((self.M, len(self.time_axis))) + 1j * np.zeros((self.M, len(self.time_axis)))
+            signal = np.zeros((self.M, len(self.time_axis["Broadband"]))) + 1j * np.zeros((self.M, len(self.time_axis["Broadband"])))
             if mode == "non-coherent":
                 for i in range(self.M):
                     for j in range(num_sub_carriers):
                         sig_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
-                        signal[i] += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
+                        signal[i] += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng["Broadband"]) * self.time_axis["Broadband"] / num_sub_carriers)
                     signal[i] *=  (1/num_sub_carriers)          
                 return np.fft.fft(signal)
              
             # Coherent signals: same amplitude and phase for all signals 
-            signal = np.zeros((1, len(self.time_axis))) + 1j * np.zeros((1, len(self.time_axis)))
+            signal = np.zeros((1, len(self.time_axis["Broadband"]))) + 1j * np.zeros((1, len(self.time_axis["Broadband"])))
             if mode == "coherent":
                 for j in range(num_sub_carriers):
                     sig_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
-                    signal += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng) * self.time_axis / num_sub_carriers)
+                    signal += sig_amp * np.exp(1j * 2 * np.pi * j * len(self.f_rng["Broadband"]) * self.time_axis["Broadband"] / num_sub_carriers)
                 signal *=  (1/num_sub_carriers)
                 return np.tile(np.fft.fft(signal), (self.M, 1))
                 

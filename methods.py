@@ -1,4 +1,4 @@
-from System_Model import *
+from system_model import *
 import numpy as np
 import scipy as sc
 import scipy.signal
@@ -10,36 +10,36 @@ import os
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class ModelBasedMethods(object):
-    def __init__(self, System_model: System_model):
+    def __init__(self, system_model: SystemModel):
         """Class for initializing the model based doa estimation methods  
 
         Args:
-            System_model (): 
+            system_model (): 
         """        
         self.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)                        # angle axis for representation of the MUSIC spectrum
-        self.Sys_Model = System_model
-        self.M = System_model.M
-        self.N = System_model.N
-        self.dist = System_model.dist
+        self.Sys_Model = system_model
+        self.M = system_model.M
+        self.N = system_model.N
+        self.dist = system_model.dist
 
     def broadband_MUSIC(self, X, NUM_OF_SOURCES=True, number_of_bins=50):
-        number_of_bins = int(self.Sys_Model.max_freq / 10)
+        number_of_bins = int(self.Sys_Model.max_freq["Broadband"] / 10)
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
             M = self.M                                                
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
             # clustring technique                                   
             pass
-        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling)
+        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling["Broadband"])
         num_of_samples = len(self.angels)
         spectrum = np.zeros((number_of_bins, num_of_samples))
         
         for i in range(number_of_bins):
-            ind = int(self.Sys_Model.min_freq) + i * len(self.Sys_Model.f_rng) // number_of_bins
-            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng) // number_of_bins])
+            ind = int(self.Sys_Model.min_freq["Broadband"]) + i * len(self.Sys_Model.f_rng["Broadband"]) // number_of_bins
+            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng["Broadband"]) // number_of_bins])
             eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
             # Un = eigenvectors[:, M:]
             Un = eigenvectors[:, np.argsort(eigenvalues)[::-1]][:, M:]  
-            spectrum[i], _= self.spectrum_calculation(Un, f=ind + len(self.Sys_Model.f_rng) // number_of_bins - 1)
+            spectrum[i], _= self.spectrum_calculation(Un, f=ind + len(self.Sys_Model.f_rng["Broadband"]) // number_of_bins - 1)
         
         # average spectra to one spectrum
         spectrum = np.sum(spectrum, axis=0)
@@ -49,19 +49,19 @@ class ModelBasedMethods(object):
         return DOA_pred, spectrum, M     
 
     def broadband_root_music(self, X, NUM_OF_SOURCES=True, number_of_bins=50):
-        number_of_bins = int(self.Sys_Model.max_freq / 10)
+        number_of_bins = int(self.Sys_Model.max_freq["Broadband"] / 10)
         if NUM_OF_SOURCES:                                                      # NUM_OF_SOURCES = TRUE : number of sources is given 
             M = self.M                                                
         else:                                                                   # NUM_OF_SOURCES = False : M is given using  multiplicity of eigenvalues
             # clustring technique                                   
             pass
-        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling)
+        X = np.fft.fft(X, axis=1, n=self.Sys_Model.f_sampling["Broadband"])
         num_of_samples = len(self.angels)
         F = []
         
         for i in range(number_of_bins):
-            ind = int(self.Sys_Model.min_freq) + i * len(self.Sys_Model.f_rng) // number_of_bins
-            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng) // number_of_bins])
+            ind = int(self.Sys_Model.min_freq["Broadband"]) + i * len(self.Sys_Model.f_rng["Broadband"]) // number_of_bins
+            R_x = np.cov(X[:, ind:ind + len(self.Sys_Model.f_rng["Broadband"]) // number_of_bins])
             eigenvalues, eigenvectors = np.linalg.eig(R_x)                          # Find the eigenvalues and eigenvectors using EVD
             # Un = eigenvectors[:, M:]
             Un = eigenvectors[:, np.argsort(eigenvalues)[::-1]][:, M:]  
@@ -336,7 +336,7 @@ class ModelBasedMethods(object):
         phi = np.linalg.pinv(Us_upper) @ Us_lower
         phi_eigenvalues, _ = np.linalg.eig(phi)                          # Find the eigenvalues and eigenvectors using EVD
         eigenvalues_angle = np.angle(phi_eigenvalues)                                   # Calculate the phase component of the roots 
-        DOA_pred = -np.arcsin((1/(2 * np.pi * self.dist * f)) * eigenvalues_angle)        # Calculate the DOA out of the phase component
+        DOA_pred = -np.arcsin((1/(2 * np.pi * self.dist[scenario] * f)) * eigenvalues_angle)        # Calculate the DOA out of the phase component
         DOA_pred = (180 / np.pi) * DOA_pred                                     # Convert from radians to degrees
         return DOA_pred, M
 
