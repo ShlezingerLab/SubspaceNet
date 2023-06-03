@@ -1,3 +1,17 @@
+"""Subspace-Net 
+Details
+----------
+Name: system_model.py
+Authors: D. H. Shmuel
+Created: 01/10/21
+Edited: 02/06/23
+
+Purpose:
+--------
+This script defines the SystemModel class for defining the settings of the DoA estimation system model.
+"""
+
+# Imports
 import numpy as np
 
 class SystemModel(object):
@@ -71,6 +85,7 @@ class SystemModel(object):
         """Computes the steering vector based on the specified parameters.
 
         Args:
+        -----
             theta (np.ndarray): Array of angles.
             f (float, optional): Frequency. Defaults to 1.
             array_form (str, optional): Array form. Defaults to "ULA".
@@ -78,6 +93,7 @@ class SystemModel(object):
             geo_noise_var (float, optional): Steering vector noise variance. Defaults to 0.
 
         Returns:
+        --------
             np.ndarray: Computed steering vector.
 
         """

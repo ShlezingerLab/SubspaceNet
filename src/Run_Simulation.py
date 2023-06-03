@@ -1,8 +1,28 @@
+"""Subspace-Net
+Details
+----------
+Name: Run_simulation.py
+Authors: D. H. Shmuel
+Created: 01/10/21
+Edited: 17/03/23
+
+Purpose
+----------
+This script defines some helpful functions:
+    * run_simulation: 
+    * train_model:
+    * plot_learning_curve:
+    * evaluate_model:
+    * evaluate_model_based:
+    * plot_spectrum:
+    * evaluate_model_based:
+"""
+
+# Imports
 import torch
 import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
-import random
 import torch.nn as nn
 import warnings
 import time
@@ -14,13 +34,13 @@ from tqdm import tqdm
 from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 
-from data_handler import *
-from Signal_creation import *
-from methods import *
-from models import *
-from criterions import *
-from utils import *
-from criterions import *
+from src.data_handler import *
+from src.signal_creation import *
+from src.methods import *
+from src.models import *
+from src.criterions import *
+from src.utils import *
+from src.criterions import *
 
 R2D = 180 / np.pi 
 D2R = 1 / R2D 
@@ -41,7 +61,7 @@ def run_simulation(train_dataset,
                     model_name,
                     Bsize,
                     Sys_Model,
-                    ActivationVal = 0.5,
+                    activation_value = 0.5,
                     checkpoint_optimizer_path = None,
                     load_flag = False, loading_path = None,
                     Plot = True, dataset_mb = None,
@@ -64,13 +84,13 @@ def run_simulation(train_dataset,
     ### Model initialization ###
     ############################
 
-    ## Create a model from `Deep_Root_Net`
+    ## Create a model from `DeepRootMUSIC`
     if model_type.startswith("DA-MUSIC"):
-      model = Deep_Augmented_MUSIC(N=Sys_Model.N, T=Sys_Model.T, M=Sys_Model.M)
-    elif model_type.startswith("CNN_DOA"):
-      model = CNN_DOA(N=Sys_Model.N, grid_size=361)
+      model = DeepAugmentedMUSIC(N=Sys_Model.N, T=Sys_Model.T, M=Sys_Model.M)
+    elif model_type.startswith("DeepCNN"):
+      model = DeepCNN(N=Sys_Model.N, grid_size=361)
     else:
-      model = Deep_Root_Net_AntiRectifier(tau=tau, M=Sys_Model.M)
+      model = SubspaceNet(tau=tau, M=Sys_Model.M)
 
     # Load it to the specified device, either gpu or cpu
     model = model.to(device)                                   
@@ -82,7 +102,7 @@ def run_simulation(train_dataset,
         print("CPU")
       else:
         model.load_state_dict(torch.load(loading_path))
-      print("Loaded Succesfully")
+      print("Loaded Successfully")
     
     ## Create an optimizer 
     if optimizer_name == "Adam":
@@ -95,7 +115,7 @@ def run_simulation(train_dataset,
         lr_decay = lr_scheduler.StepLR(optimizer, step_size=step_size_val, gamma=gamma_val)
 
     ## Loss criterion
-    if model_type.startswith("CNN_DOA"):
+    if model_type.startswith("DeepCNN"):
       criterion = nn.BCELoss()
       eval_criterion = RMSPELoss() 
     else:
@@ -146,7 +166,7 @@ def run_simulation(train_dataset,
     ## Plot learning and validation loss curves
     if Plot:
       plot_learning_curve(list(range(num_epochs)), loss_train_list, loss_valid_list)
-    if model_type.startswith("CNN_DOA"):
+    if model_type.startswith("DeepCNN"):
       model_loss = -1
     else:
       ## Compute the model Overall loss
@@ -180,8 +200,8 @@ def train_model(model, Train_data, Valid_data,
             Rx = Variable(Rx, requires_grad=True).to(device)
             DOA = Variable(DOA, requires_grad=True).to(device)
 
-            if model_type.startswith("DA-MUSIC") or model_type.startswith("CNN_DOA"):
-              # Deep Augmented MUSIC or CNN DOA
+            if model_type.startswith("DA-MUSIC") or model_type.startswith("DeepCNN"):
+              # Deep Augmented MUSIC or DeepCNN
               model_parameters = model(Rx)
               DOA_predictions = model_parameters
             else:
@@ -190,7 +210,7 @@ def train_model(model, Train_data, Valid_data,
               DOA_predictions = model_parameters[0]
 
             ## Compute training loss
-            if model_type.startswith("CNN_DOA"):
+            if model_type.startswith("DeepCNN"):
               train_loss = criterion(DOA_predictions.float(), DOA.float())
             else:
               train_loss = criterion(DOA_predictions, DOA)
@@ -206,7 +226,7 @@ def train_model(model, Train_data, Valid_data,
             optimizer.step()                                                     
             
             model.zero_grad()                                                   # reset the gradients back to zero
-            if model_type.startswith("CNN_DOA") or model_type.startswith("DA-MUSIC"):
+            if model_type.startswith("DeepCNN") or model_type.startswith("DA-MUSIC"):
               Overall_train_loss += train_loss.item() * len(data[0])                             # add the batch training loss to epoch loss
             else:
               Overall_train_loss += train_loss.item()                            # add the batch training loss to epoch loss
@@ -238,7 +258,7 @@ def train_model(model, Train_data, Valid_data,
                 valid_length += DOA.shape[0]
                 Rx = Rx.to(device)
                 DOA = DOA.to(device)
-                if model_type.startswith("DA-MUSIC") or model_type.startswith("CNN_DOA"):
+                if model_type.startswith("DA-MUSIC") or model_type.startswith("DeepCNN"):
                   # Deep Augmented MUSIC
                   model_parameters = model(Rx)
                   DOA_predictions = model_parameters
@@ -246,7 +266,7 @@ def train_model(model, Train_data, Valid_data,
                   # Default - SubSpaceNet
                   model_parameters = model(Rx, DOA.shape[1])
                   DOA_predictions = model_parameters[0]
-                if model_type.startswith("CNN_DOA"):
+                if model_type.startswith("DeepCNN"):
                   eval_loss = criterion(DOA_predictions.float(), DOA.float())
                   # doa_label, doa_prediction = get_k_angles(181, 2, DOA_predictions, model_parameters)
                   # prmse = eval_criterion(doa_label, doa_prediction)
@@ -308,7 +328,7 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, mo
               # Deep Augmented MUSIC
               model_parameters = model(Rx)
               DOA_predictions = model_parameters
-            elif model_type.startswith("CNN_DOA"):
+            elif model_type.startswith("DeepCNN"):
               # CNN
               model_parameters = model(Rx)
               DOA_predictions = model_parameters

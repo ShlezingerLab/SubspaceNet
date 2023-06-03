@@ -1,11 +1,38 @@
+"""Subspace-Net 
+Details
+----------
+Name: data_handler.py
+Authors: D. H. Shmuel
+Created: 01/10/21
+Edited: 03/06/23
+
+Purpose:
+--------
+"data_handler.py" is aim to handle the creation and processing of synthetic datasets
+based on specified parameters and model types.
+It includes functions for generating datasets, reading data from files,
+computing autocorrelation matrices, and creating covariance tensors.
+
+Attributes:
+-----------
+Samples (from src.signal_creation): A class for creating samples used in dataset generation.
+
+The script defines the following functions:
+* create_dataset: Generates a synthetic dataset based on the specified parameters and model type.
+* read_data: Reads data from a file specified by the given path.
+* autocorrelation_matrix: Computes the autocorrelation matrix for a given lag of the input samples.
+* create_autocorrelation_tensor: Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
+* create_cov_tensor: Creates a 3D tensor containing the real part, imaginary part, and phase component of the covariance matrix.
+
+"""
+
+# Imports
 import torch
 import numpy as np
-from system_model import SystemModel
-from Signal_creation import Samples
-from tqdm import tqdm
-import random
-import h5py
 import itertools
+from tqdm import tqdm
+from src.signal_creation import Samples
+from pathlib import Path
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -43,23 +70,23 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
     """ 
     generic_dataset = []
     model_dataset = []
-    system_model = Samples(scenario= scenario, N= N, M= M,
+    sampels_model = Samples(scenario= scenario, N= N, M= M,
                     observations=T, freq_values=[0, 500])
 
     # Generate permutations for CNN model training dataset
-    if model_type.startswith("CNN") and phase.startswith("train"):
+    if model_type.startswith("DeepCNN") and phase.startswith("train"):
         doa_permutations = []
         angles_grid = np.linspace(start=-90, stop=90, num=361)
         for comb in itertools.combinations(angles_grid, M):
             doa_permutations.append(list(comb))
     
-    if model_type.startswith("CNN") and phase.startswith("train"):
+    if model_type.startswith("DeepCNN") and phase.startswith("train"):
         for snr_addition in [0]:
             for i, doa in tqdm(enumerate(doa_permutations)):
                 # Samples model creation
-                system_model.set_doa(doa)             
+                sampels_model.set_doa(doa)             
                 # Observations matrix creation
-                X = torch.tensor(system_model.samples_creation(mode = mode, N_mean= 0,
+                X = torch.tensor(sampels_model.samples_creation(mode = mode, N_mean= 0,
                                 N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR + snr_addition, eta = eta,
                                 geo_noise_var = geo_noise_var)[0], dtype=torch.complex64)
                 X_model = create_cov_tensor(X)
@@ -72,39 +99,39 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
     else:
         for i in tqdm(range(samples_size)):
             # Samples model creation
-            system_model.set_doa(true_doa)
+            sampels_model.set_doa(true_doa)
             # Observations matrix creation
-            X = torch.tensor(system_model.samples_creation(mode = mode, N_mean= 0,
+            X = torch.tensor(sampels_model.samples_creation(mode = mode, N_mean= 0,
                             N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR, eta = eta,
                             geo_noise_var = geo_noise_var)[0], dtype=torch.complex64) 
             if model_type.startswith("SubspaceNet"):
                 # Generate auto-correlation tensor                                   
                 X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
-            elif model_type.startswith("CNN") and phase.startswith("test"):
+            elif model_type.startswith("DeepCNN") and phase.startswith("test"):
                 # Generate 3d covariance parameters tensor
                 X_model = create_cov_tensor(X)
             else:
                 X_model = X
             # Ground-truth creation
-            Y = torch.tensor(system_model.DOA, dtype=torch.float64)
+            Y = torch.tensor(sampels_model.doa, dtype=torch.float64)
             generic_dataset.append((X,Y))                                                        
             model_dataset.append((X_model,Y))                                                        
     
     if Save:
         torch.save(obj= model_dataset, f=dataset_path + f"/{model_type}_DataSet_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
         torch.save(obj= generic_dataset, f=dataset_path + f"/Generic_DataSet_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
-        torch.save(obj= system_model, f=dataset_path + f"/Sys_Model_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
+        torch.save(obj= sampels_model, f=dataset_path + f"/Sys_Model_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
     
-    return model_dataset, generic_dataset, system_model
+    return model_dataset, generic_dataset, sampels_model
 
-# def Read_Data(Data_path: str) -> torch.Tensor:
-def Read_Data(Data_path: str):
+# def read_data(Data_path: str) -> torch.Tensor:
+def read_data(path: str):
     """
     Reads data from a file specified by the given path.
 
     Args:
     -----
-        Data_path (str): The path to the data file.
+        path (str): The path to the data file.
 
     Returns:
     --------
@@ -116,12 +143,13 @@ def Read_Data(Data_path: str):
 
     Examples:
     ---------
-        >>> data_path = "data.pt"
-        >>> Read_Data(data_path)
+        >>> path = "data.pt"
+        >>> read_data(path)
 
     """
-    Data = torch.load(Data_path)
-    return Data
+    assert(isinstance(path, (str, Path)))
+    data = torch.load(path)
+    return data
 
 # def autocorrelation_matrix(X: torch.Tensor, lag: int) -> torch.Tensor:
 def autocorrelation_matrix(X: torch.Tensor, lag: int):

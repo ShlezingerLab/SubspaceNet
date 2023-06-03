@@ -1,11 +1,9 @@
-from system_model import *
 import numpy as np
-import scipy as sc
 import scipy.signal
-from utils import *
-from models import *
+import scipy
 import torch
-import os
+from src.system_model import *
+from src.utils import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -392,3 +390,57 @@ class ModelBasedMethods(object):
             
         response_curve = np.array(response_curve, dtype=complex)
         return response_curve
+
+def root_music_torch(Rz: torch.Tensor, M: int, batch_size: int):
+    """Implementation of the model-based Root-MUSIC algorithm, support Pytorch, intended for
+        MB-DL models. the model sets for nominal and ideal condition (Narrow-band, ULA, non-coherent)
+        as it accepts the surrogate covariance matrix. 
+
+    Args:
+        Rz (torch.Tensor): Focused covariance matrix
+        M (int): Number of sources
+        batch_size: the number of batches
+
+    Returns:
+        doa_batches (torch.Tensor): The predicted doa, over all batches.
+        doa_all_batches (torch.Tensor): All doa predicted, given all roots, over all batches.
+        roots_to_return (torch.Tensor): The unsorted roots.
+    """        
+    
+    dist = 0.5 
+    f = 1
+    doa_batches = []
+    doa_all_batches = []
+    Bs_Rz = Rz
+    for iter in range(batch_size):
+        R = Bs_Rz[iter]
+        # Extract eigenvalues and eigenvectors using EVD
+        eigenvalues, eigenvectors = torch.linalg.eig(R)
+        # Noise subspace as the eigenvectors which associated with the M greatest eigenvalues 
+        Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:] 
+        # Generate hermitian noise subspace matrix 
+        F = torch.matmul(Un, torch.t(torch.conj(Un)))
+        # Calculates the sum of F matrix diagonals
+        diag_sum = sum_of_diags_torch(F)                                                            
+        # Calculates the roots of the polynomial defined by F matrix diagonals
+        roots = find_roots_torch(diag_sum)
+        
+        ## Calculates angles of all roots
+        # Calculate the phase component of the roots
+        roots_angels_all = torch.angle(roots) 
+        # Calculate doa
+        doa_pred_all = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels_all)
+        doa_all_batches.append(doa_pred_all)
+        roots_to_return = roots
+        
+        # Take only roots which outside the unit circle
+        roots = roots[sorted(range(roots.shape[0]), key = lambda k : abs(abs(roots[k]) - 1))]
+        mask = (torch.abs(roots) - 1) < 0
+        roots = roots[mask][:M]
+        # Calculate the phase component of the roots
+        roots_angels = torch.angle(roots)
+        # Calculate doa
+        doa_pred = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels)
+        doa_batches.append(doa_pred)
+        
+    return torch.stack(doa_batches, dim = 0), torch.stack(doa_all_batches, dim = 0), roots_to_return

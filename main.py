@@ -27,14 +27,14 @@ import torch
 import os
 import matplotlib.pyplot as plt
 import warnings
-from System_Model import *
-from Signal_creation import *
-from data_handler import *
-from criterions import *
-from methods import *
-from models import *
-from Run_Simulation import *
-from utils import * 
+from src.system_model import *
+from src.signal_creation import *
+from src.data_handler import *
+from src.criterions import *
+from src.methods import *
+from src.models import *
+from src.Run_Simulation import *
+from src.utils import * 
 
 warnings.simplefilter("ignore")
 os.system('cls||clear')
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     commands = {"SAVE_TO_FILE"  : True,     # Saving results to file or present them over CMD
                 "CREATE_DATA"   : True,     # Creating new data
                 "LOAD_DATA"     : False,    # Loading data from dataset 
-                "TRAIN_MODE"    : True,     # Applying training operation
+                "TRAIN_MODE"    : False,     # Applying training operation
                 "SAVE_MODEL"    : False,    # Saving tuned model
                 "EVALUATE_MODE" : True}     # Evaluating desired algorithms
                 
@@ -80,17 +80,17 @@ if __name__ == "__main__":
     ############################
     #    Parameters setting   #
     ############################
-    for SNR in [5]:
+    for geo_noise_var in [0.3, 0.4, 0.5, 0.75]:
         # for T in [100, 200]:
         # System model parameters
         # model_type = "DA-MUSIC"
-        model_type = "CNN_DOA"
+        model_type = "DeepCNN"
         # model_type = "SubspaceNet"
         tau = 8                     # Number of lags
         N = 8                       # Number of sensors
         M = 2                      # number of sources
-        T = 2                     # Number of observations, ideal = 200 or above
-        # SNR = 10                    # Signal to noise ratio, ideal = 10 or above
+        T = 200                     # Number of observations, ideal = 200 or above
+        SNR = 10                    # Signal to noise ratio, ideal = 10 or above
         
         ## Signal parameters
         scenario = "NarrowBand"     # signals type, options: "NarrowBand", "Broadband_OFDM", "Broadband_simple"
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         
         ## Array mis-calibration values
         eta = 0                     # Deviation from sensor location, normalized by wavelength, ideal = 0
-        geo_noise_var = 0           # Added noise for sensors response
+        # geo_noise_var = 0.1           # Added noise for sensors response
         
         # simulation parameters
         samples_size = 3000       # Overall dateset size
@@ -158,9 +158,9 @@ if __name__ == "__main__":
                 TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                         M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
 
-                train_dataset = Read_Data(Main_Data_path + Data_Scenario_path + f"\\TrainingData\\{model_type}_DataSet" + TRAIN_DATA_PATH)
-                test_dataset  = Read_Data(Main_Data_path + Data_Scenario_path + f"\\TestData\\{model_type}_DataSet"     + TEST_DATA_PATH)
-                Sys_Model     = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
+                train_dataset = read_data(Main_Data_path + Data_Scenario_path + f"\\TrainingData\\{model_type}_DataSet" + TRAIN_DATA_PATH)
+                test_dataset  = read_data(Main_Data_path + Data_Scenario_path + f"\\TestData\\{model_type}_DataSet"     + TEST_DATA_PATH)
+                Sys_Model     = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
             
             except:
                 TRAIN_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, samples_size, M, N,
@@ -168,11 +168,11 @@ if __name__ == "__main__":
                 TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                         M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
 
-                DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
-                DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
-                DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
-                DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
-                Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
+                DataSet_Rx_train = read_data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+                DataSet_x_train  = read_data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
+                DataSet_Rx_test  = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+                DataSet_x_test   = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
+                Sys_Model        = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
 
         ############################
         ###    Training stage    ###
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             # Training aided parameters
             optimal_lr = 0.0001         # Learning rate value
             optimal_bs = 256            # Batch size value
-            epochs = 80                # Number of epochs
+            epochs = 30                # Number of epochs
             optimal_step = 100          # Number of steps for learning rate decay iteration
             optimal_gamma_val = 0.9      # learning rate decay value
             weight_decay_val = 1e-9
@@ -201,7 +201,7 @@ if __name__ == "__main__":
             print("\n--- New Simulation ---\n")
             # print("Description: Simulation of broadband sources within range [0-500] Hz with T = {}, Tau = {}, SNR = {}, {} sources".format(T, tau, SNR, mode))
             # print("Description: Simulation with constant {} deviation in sensors location, T = {}, SNR = {}, {} sources".format(eta, T, SNR, mode))
-            print("Description: Simulation geometry mis-matches with added noise to array response", end=" ")
+            print("Description: Simulation of multiple coherent sources", end=" ")
             print(f"Model: {model_type}")
             print(f"variance = {geo_noise_var} , T = {T}, SNR = {SNR}, {mode} sources")
             print("Simulation parameters:")
@@ -232,13 +232,13 @@ if __name__ == "__main__":
                             step_size_val = optimal_step,
                             gamma_val = optimal_gamma_val,
                             num_epochs = epochs,
-                            model_name= "{}_M={}_T={}_SNR_{}_tau={}_{}_{}".format(model_type, M, T, SNR, tau, scenario, mode),
+                            model_name= "{}_M={}_T={}_SNR_{}_tau={}_{}_{}_eta=0.0125".format(model_type, M, T, SNR, tau, scenario, mode, eta),
                             Bsize = optimal_bs,
                             Sys_Model = Sys_Model,
-                            load_flag = False,
+                            load_flag = True,
                             # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(3, mode, tau, SNR, T),
-                            loading_path = saving_path + r"\Models" + f"\{model_type}_M={M}_T={T}_SNR_{SNR}_tau={tau}_{scenario}_{mode}",
-                            # loading_path = saving_path + r"\Models" + r"\model_20_05_2023_20_09",
+                            # loading_path = saving_path + r"\Models" + f"\{model_type}_M=2_T=100_SNR_{SNR}_tau={tau}_{scenario}_coherent_grid_361",
+                            loading_path = saving_path + r"\Models" + r"\model_30_05_2023_00_09",
                             # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(2, mode, tau, 10, 20),
                             Plot = False,
                             model_type = model_type)
@@ -288,19 +288,19 @@ if __name__ == "__main__":
                 try:
                     TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                             M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
-                    model_test_dataset = Read_Data(Main_Data_path + Data_Scenario_path + f"\\TestData\\{model_type}_DataSet"     + TEST_DATA_PATH)
-                    generic_test_dataset = Read_Data(Main_Data_path + Data_Scenario_path + f"\\TestData\\Generic_DataSet"     + TEST_DATA_PATH)
-                    Sys_Model = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
+                    model_test_dataset = read_data(Main_Data_path + Data_Scenario_path + f"\\TestData\\{model_type}_DataSet"     + TEST_DATA_PATH)
+                    generic_test_dataset = read_data(Main_Data_path + Data_Scenario_path + f"\\TestData\\Generic_DataSet"     + TEST_DATA_PATH)
+                    Sys_Model = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
 
                 except:
                     TEST_DATA_PATH = '_{}_{}_{}_M={}_N={}_T={}_SNR={}_eta={}_geo_noise_var{}.h5'.format(scenario, mode, int(train_test_ratio * samples_size),
                                             M, N, T, SNR, str(eta).replace(",", ""), str(geo_noise_var).replace(",", ""))
 
-                    DataSet_Rx_train = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
-                    DataSet_x_train  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
-                    DataSet_Rx_test  = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
-                    DataSet_x_test   = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
-                    Sys_Model        = Read_Data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
+                    DataSet_Rx_train = read_data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_Rx" + TRAIN_DATA_PATH)
+                    DataSet_x_train  = read_data(Main_Data_path + Data_Scenario_path + r"\\TrainingData\\DataSet_x"   + TRAIN_DATA_PATH)
+                    DataSet_Rx_test  = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_Rx"     + TEST_DATA_PATH)
+                    DataSet_x_test   = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\DataSet_x"      + TEST_DATA_PATH)
+                    Sys_Model        = read_data(Main_Data_path + Data_Scenario_path + r"\\TestData\\Sys_Model"      + TEST_DATA_PATH)
 
             loss_measure = "rmse"
             print(f"Number of sensors = {N}")
@@ -321,21 +321,18 @@ if __name__ == "__main__":
             ############################
             
             if not commands["TRAIN_MODE"]:
-                if scenario.startswith("Broadband"):
-                    # loading_path = saving_path + r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-                    loading_path = saving_path + r"\Models" + f"\{model_type}_M={M}_T=200_SNR_{SNR}_tau={tau}_{scenario}_{mode}"
-                    # loading_path = saving_path + r"\Models" + f"\CNN_DOA_M=2_T=100_SNR_10_tau=8_NarrowBand_coherent_grid_361"
-                else:
-                    # loading_path = saving_path + r"\Final_models" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
-                    loading_path = saving_path + r"\Models" + f"\{model_type}_M={M}_T=200_SNR_{SNR}_tau={tau}_{scenario}_{mode}"
-                    # loading_path = saving_path + r"\Models" + f"\CNN_DOA_M=2_T=100_SNR_10_tau=8_NarrowBand_coherent_grid_361"
+                # Load trained model
+                model_path = r"\Models" + r"\model_30_05_2023_00_09" 
+                # model_path = r"\Models" + f"\{model_type}_M=3_T={T}_SNR_{SNR}_tau={tau}_{scenario}_{mode}"
+                # model_path = r"\Final_models" + r"\BroadBand" + r"/model_M={}_{}_Tau={}_SNR={}_T={}".format(M, mode, tau, SNR, T)
+                loading_path = saving_path + model_path
 
-                if model_type.startswith("CNN"):
-                    model = CNN_DOA(N, 361)
+                if model_type.startswith("DeepCNN"):
+                    model = DeepCNN(N, 361)
                 elif model_type.startswith("SubspaceNet"):
-                    model = Deep_Root_Net_AntiRectifier(tau=tau, M=M)                                         
+                    model = SubspaceNet(tau=tau, M=M)                                         
                 elif model_type.startswith("DA-MUSIC"):
-                    model = Deep_Augmented_MUSIC(N=N, T=T, M=M)
+                    model = DeepAugmentedMUSIC(N=N, T=T, M=M)
                         
                 # Load the model to the specified device, either gpu or cpu
                 model = model.to(device)
