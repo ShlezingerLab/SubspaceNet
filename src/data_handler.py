@@ -8,7 +8,7 @@ Edited: 03/06/23
 
 Purpose:
 --------
-"data_handler.py" is aim to handle the creation and processing of synthetic datasets
+This scripts handle the creation and processing of synthetic datasets
 based on specified parameters and model types.
 It includes functions for generating datasets, reading data from files,
 computing autocorrelation matrices, and creating covariance tensors.

@@ -1,7 +1,7 @@
 """Subspace-Net
 Details
 ----------
-Name: Run_simulation.py
+Name: simulation_handler.py
 Authors: D. H. Shmuel
 Created: 01/10/21
 Edited: 17/03/23
@@ -21,7 +21,6 @@ This script defines some helpful functions:
 # Imports
 import torch
 import numpy as np
-import scipy as sc
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import warnings
@@ -33,69 +32,47 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
-
-from src.data_handler import *
-from src.signal_creation import *
 from src.methods import *
 from src.models import *
 from src.criterions import *
 from src.utils import *
-from src.criterions import *
 
-R2D = 180 / np.pi 
-D2R = 1 / R2D 
-
+# Initialization
 warnings.simplefilter("ignore")
 plt.close('all')
-
 set_unified_seed()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# saving_path = r"C:\Users\dorsh\OneDrive\שולחן העבודה\My Drive\Thesis\DeepRootMUSIC\Code\Weights\Models"
+# Define Saving path
 saving_path = r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights\Models"
 
-def run_simulation(train_dataset,
-                    test_dataset,
-                    tau, optimizer_name, lr_val, Schedular,
-                    weight_decay_val, step_size_val, gamma_val, num_epochs,
-                    model_name,
-                    Bsize,
-                    Sys_Model,
-                    activation_value = 0.5,
-                    checkpoint_optimizer_path = None,
-                    load_flag = False, loading_path = None,
-                    Plot = True, dataset_mb = None,
-                    Plot_Spectrum_flag = False,
-                    saving_path = saving_path,
-                    model_type = "SubNet"):
+def run_simulation(train_dataset: tuple, test_dataset: tuple,
+                    tau: int, optimizer_name: str, lr_val: float, schedular: bool,
+                    weight_decay_val: float, step_size_val: float, gamma_val: float,
+                    num_epochs: int, model_name: str, batch_size: int, system_model: SystemModel,
+                    load_flag:bool = False, loading_path:str = None, Plot:bool = True,
+                    saving_path:str = saving_path, activation_value = 0.5, model_type = "SubNet"):
   
-    ## Set the seed for all available random operations
+    # Set the seed for all available random operations
     set_unified_seed()
-    
-    ## Current date and time
+    # Current date and time
     print("\n----------------------\n")
-
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
     print("date and time =", dt_string)
 
-    ############################
-    ### Model initialization ###
-    ############################
-
-    ## Create a model from `DeepRootMUSIC`
+    ## Model initialization
+    # Assign the desired model
     if model_type.startswith("DA-MUSIC"):
-      model = DeepAugmentedMUSIC(N=Sys_Model.N, T=Sys_Model.T, M=Sys_Model.M)
+      model = DeepAugmentedMUSIC(N=system_model.N, T=system_model.T, M=system_model.M)
     elif model_type.startswith("DeepCNN"):
-      model = DeepCNN(N=Sys_Model.N, grid_size=361)
+      model = DeepCNN(N=system_model.N, grid_size=361)
     else:
-      model = SubspaceNet(tau=tau, M=Sys_Model.M)
-
-    # Load it to the specified device, either gpu or cpu
+      model = SubspaceNet(tau=tau, M=system_model.M)
+    # Load model to specified device, either gpu or cpu
     model = model.to(device)                                   
-    
-    ## Loading available model
+    # Load model weights
     if load_flag == True:
       if torch.cuda.is_available() == False:
         model.load_state_dict(torch.load(loading_path, map_location=torch.device('cpu')))
@@ -103,77 +80,55 @@ def run_simulation(train_dataset,
       else:
         model.load_state_dict(torch.load(loading_path))
       print("Loaded Successfully")
-    
-    ## Create an optimizer 
+    ## Training parameters 
+    # Assign optimizer 
     if optimizer_name == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=lr_val,weight_decay=weight_decay_val)
     elif optimizer_name == "SGD":
         optimizer = optim.SGD(model.parameters(), lr=lr_val)
     elif optimizer_name == "SGD Momentum":
         optimizer = optim.SGD(model.parameters(), lr=lr_val, momentum=0.9)
-    if Schedular:
+    # Assign schedular for learing rate decay
+    if schedular:
         lr_decay = lr_scheduler.StepLR(optimizer, step_size=step_size_val, gamma=gamma_val)
-
-    ## Loss criterion
+    # Define loss criterion
     if model_type.startswith("DeepCNN"):
-      criterion = nn.BCELoss()
-      eval_criterion = RMSPELoss() 
+      criterion = nn.BCELoss() 
     else:
       criterion = RMSPELoss()
 
-    ############################
-    ###  Data Organization   ###
-    ############################
-
-    ## Split data into Train and Validation
-    Train_DataSet, Valid_DataSet = train_test_split(train_dataset, test_size=0.1, shuffle = True)
-    print("Training DataSet size", len(Train_DataSet))
-    print("Validation DataSet size", len(Valid_DataSet))
-
-    ## Transform Training Datasets into DataLoader Object    
-    Train_data = torch.utils.data.DataLoader(Train_DataSet,
-                                    batch_size=Bsize,
-                                    shuffle=True,
-                                    drop_last=False)  
-    Valid_data = torch.utils.data.DataLoader(Valid_DataSet,
-                                    batch_size=1,
-                                    shuffle=False,
-                                    drop_last=False)
-    
-    ## Transform Test Dataset into DataLoader Object
+    ## Generate training and testing dataloader objects
+    # Divide into training and validation datasets 
+    train_dataset, valid_dataset = train_test_split(train_dataset, test_size=0.1, shuffle = True)
+    print("Training DataSet size", len(train_dataset))
+    print("Validation DataSet size", len(valid_dataset))
+    # Transform datasets into DataLoader objects    
+    train_dataset = torch.utils.data.DataLoader(train_dataset,
+            batch_size=batch_size, shuffle=True, drop_last=False)  
+    valid_dataSet = torch.utils.data.DataLoader(valid_dataset,
+            batch_size=1, shuffle=False, drop_last=False)
+    # Transform test-dataset into DataLoader object
     print("Test_DataSet", len(test_dataset))
-    Test_data = torch.utils.data.DataLoader(test_dataset,
-                                    batch_size=1,
-                                    shuffle=False,
-                                    drop_last=False)
-    
-    ############################
-    ###     Train Model      ###
-    ############################
-
-    ## Train using the "train_model" function
-    model, loss_train_list, loss_valid_list = train_model(model, Train_data, Valid_data,
+    test_dataset = torch.utils.data.DataLoader(test_dataset,
+            batch_size=1, shuffle=False, drop_last=False)
+    ## Train model using the train_model function
+    model, loss_train_list, loss_valid_list = train_model(model, train_dataset, valid_dataSet,
                  optimizer, criterion, epochs= num_epochs, model_name=model_name, scheduler=lr_decay,
                     checkpoint_path=r"C:\Users\dorsh\Deep RootMUSIC\Code\Weights" + '\ckpt-{}.pk', model_type=model_type)
-    
-    ## Save model Best weights
+    # Save models best weights
     torch.save(model.state_dict(), saving_path + '\\model_' + dt_string_for_save)
-    
-    ############################
-    ###    Evaluate Model    ###
-    ############################
-    print("\n--- Evaluating Stage ---\n")
-    ## Plot learning and validation loss curves
+    # Plot learning and validation loss curves
     if Plot:
       plot_learning_curve(list(range(num_epochs)), loss_train_list, loss_valid_list)
+    ## Evaluation stage
+    print("\n--- Evaluating Stage ---\n")
     if model_type.startswith("DeepCNN"):
       model_loss = -1
     else:
-      ## Compute the model Overall loss
-      model_loss = evaluate_model(model, Test_data, criterion, model_type=model_type)
+      # Compute the model overall loss
+      model_loss = evaluate_model(model, test_dataset, criterion, model_type=model_type)
       print("{} Test loss = {}".format(model_type, model_loss))
     return model, loss_train_list, loss_valid_list, model_loss
-
 
 def train_model(model, Train_data, Valid_data,
                  optimizer, criterion, epochs,
@@ -349,10 +304,10 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, mo
                     algorithm="SubNet+R-MUSIC", figures=figures)
     return loss
 
-def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE,
+def evaluate_hybrid_model(model_hybrid, Data, system_model, criterion = RMSPE,
     model_name=None, algorithm = "music", plot_spec = False, figures = None):
   # Initialize parameters for evaluation
-  mb = ModelBasedMethods(Sys_Model)
+  mb = ModelBasedMethods(system_model)
   hybrid_loss = [] 
   model_hybrid.eval()
   # Gradients calculation isn't required for evaluation
@@ -364,7 +319,7 @@ def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE,
             
       ## Hybrid MUSIC
       if algorithm.startswith("music"):
-        DOA_pred, spectrum, M = mb.hybrid_MUSIC(model_hybrid, Rx, Sys_Model.scenario)
+        DOA_pred, spectrum, M = mb.hybrid_MUSIC(model_hybrid, Rx, system_model.scenario)
         DOA_pred = mb.angels[DOA_pred] * R2D
         # Take the first M predictions
         predicted_DOA = DOA_pred[:M][::-1]  
@@ -376,27 +331,27 @@ def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE,
         hybrid_loss.append(loss)
         if plot_spec and i == len(Data.dataset) - 1:
           figures["music"]["norm factor"] = np.max(spectrum)
-          plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, Sys_Model=Sys_Model,
+          plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, system_model=system_model,
                         spectrum=spectrum, algorithm="SubNet+MUSIC", figures=figures)
         
       ## Hybrid ESPRIT
       elif algorithm.startswith("esprit"):
-        predicted_DOA, M = mb.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=Sys_Model.scenario)
+        predicted_DOA, M = mb.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=system_model.scenario)
         while(predicted_DOA.shape[0] < M):
           print("Cant estimate M sources - hybrid {}".format(algorithm))
           predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)   
         loss = criterion(predicted_DOA, DOA * R2D)
         hybrid_loss.append(loss)
         # if plot_spec and i == len(Data.dataset) - 1: 
-          # plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, Sys_Model=Sys_Model, spectrum=spectrum, algorithm=algorithm)
+          # plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=DOA * R2D, system_model=system_model, spectrum=spectrum, algorithm=algorithm)
             
       ## Hybrid MVDR
       elif algorithm.startswith("mvdr"):
         # mb.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 3600, endpoint=False)
-        MVDR_spectrum = mb.MVDR(X=None, HYBRID = True, model_mvdr=model_hybrid, Rz=Rx, scenario=Sys_Model.scenario)
+        MVDR_spectrum = mb.MVDR(X=None, HYBRID = True, model_mvdr=model_hybrid, Rz=Rx, scenario=system_model.scenario)
         if plot_spec and i == len(Data.dataset) - 1:
           figures["mvdr"]["norm factor"] = np.max(MVDR_spectrum)
-          plot_spectrum(DOA_prediction=None, true_DOA=DOA * R2D, Sys_Model=Sys_Model, spectrum=MVDR_spectrum, algorithm="SubNet+MVDR", figures=figures)
+          plot_spectrum(DOA_prediction=None, true_DOA=DOA * R2D, system_model=system_model, spectrum=MVDR_spectrum, algorithm="SubNet+MVDR", figures=figures)
         hybrid_loss = 0
       
       else:
@@ -404,9 +359,9 @@ def evaluate_hybrid_model(model_hybrid, Data, Sys_Model, criterion = RMSPE,
   return np.mean(hybrid_loss)
 
 
-def evaluate_model_based(dataset_mb, Sys_Model, criterion=RMSPE, plot_spec=False, algorithm="music", figures=None):
+def evaluate_model_based(dataset_mb, system_model, criterion=RMSPE, plot_spec=False, algorithm="music", figures=None):
   loss_list = []
-  mb = ModelBasedMethods(Sys_Model)
+  mb = ModelBasedMethods(system_model)
   for i, data in enumerate(dataset_mb):
     X, doa = data
     X = X[0]
@@ -435,7 +390,7 @@ def evaluate_model_based(dataset_mb, Sys_Model, criterion=RMSPE, plot_spec=False
         DOA_pred, MUSIC_Spectrum, M = mb.MUSIC(X, NUM_OF_SOURCES=True,
                                       SPS=True, sub_array_size=int(mb.N / 2) + 1)
       elif algorithm.startswith("music"):
-            DOA_pred, MUSIC_Spectrum, M = mb.MUSIC(X, scenario=Sys_Model.scenario)
+            DOA_pred, MUSIC_Spectrum, M = mb.MUSIC(X, scenario=system_model.scenario)
       
       DOA_pred = mb.angels[DOA_pred] * R2D  # Convert from radians to degrees
       predicted_DOA = DOA_pred[:M][::-1]  # Take First M predictions
@@ -448,14 +403,14 @@ def evaluate_model_based(dataset_mb, Sys_Model, criterion=RMSPE, plot_spec=False
       # plot BB-MUSIC spectrum
       if plot_spec and i == len(dataset_mb.dataset) - 1:
         plot_spectrum(DOA_prediction=predicted_DOA, true_DOA=doa * R2D,
-              Sys_Model=Sys_Model, spectrum=MUSIC_Spectrum, algorithm=algorithm.upper(), figures=figures)
+              system_model=system_model, spectrum=MUSIC_Spectrum, algorithm=algorithm.upper(), figures=figures)
     
     ### ESPRIT algorithms ###
     elif "esprit" in algorithm:
       if algorithm.startswith("sps"):
         DOA_pred, M = mb.esprit(X, NUM_OF_SOURCES=True, SPS=True, sub_array_size=int(mb.N / 2) + 1)
       else:
-        DOA_pred, M = mb.esprit(X, NUM_OF_SOURCES=True, scenario=Sys_Model.scenario)
+        DOA_pred, M = mb.esprit(X, NUM_OF_SOURCES=True, scenario=system_model.scenario)
       # if algorithm cant estimate M sources, randomize angels
       while(DOA_pred.shape[0] < M):
         print(f"{algorithm}: cant estimate M sources")
@@ -465,14 +420,14 @@ def evaluate_model_based(dataset_mb, Sys_Model, criterion=RMSPE, plot_spec=False
 
     # MVDR evaluation
     elif algorithm.startswith("mvdr"):
-      MVDR_spectrum = mb.MVDR(X=X, scenario=Sys_Model.scenario)
+      MVDR_spectrum = mb.MVDR(X=X, scenario=system_model.scenario)
       if plot_spec and i == len(dataset_mb.dataset) - 1:
-        plot_spectrum(DOA_prediction=None, true_DOA=doa * R2D, Sys_Model=Sys_Model,
+        plot_spectrum(DOA_prediction=None, true_DOA=doa * R2D, system_model=system_model,
                       spectrum=MVDR_spectrum, algorithm=algorithm.upper(), figures= figures)
   return np.mean(loss_list)
 
 
-def plot_spectrum(DOA_prediction, true_DOA, Sys_Model=None, spectrum=None, roots=None,
+def plot_spectrum(DOA_prediction, true_DOA, system_model=None, spectrum=None, roots=None,
                   algorithm="music", figures = None):
   if isinstance(DOA_prediction, (np.ndarray, list, torch.Tensor)):
     DOA_prediction = np.squeeze(np.array(DOA_prediction))
@@ -485,7 +440,7 @@ def plot_spectrum(DOA_prediction, true_DOA, Sys_Model=None, spectrum=None, roots
     if figures["music"]["ax"] == None:
       figures["music"]["ax"] = figures["music"]["fig"].add_subplot(111)
 
-    mb = ModelBasedMethods(Sys_Model)
+    mb = ModelBasedMethods(system_model)
     angels_grid = mb.angels * R2D
     # ax.set_title(algorithm.upper() + "spectrum")
     figures["music"]["ax"].set_xlabel("Angels [deg]")
@@ -505,7 +460,7 @@ def plot_spectrum(DOA_prediction, true_DOA, Sys_Model=None, spectrum=None, roots
       plt.style.use('plot_style.txt')
     if figures["mvdr"]["ax"] == None:
       figures["mvdr"]["ax"] = figures["mvdr"]["fig"].add_subplot(111, polar=True)
-    mb = ModelBasedMethods(Sys_Model)
+    mb = ModelBasedMethods(system_model)
     # mb.angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 3600, endpoint=False)
     # ax.set_xlabel("Angels [deg]")
     figures["mvdr"]["ax"].set_theta_zero_location('N')

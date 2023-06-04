@@ -8,8 +8,9 @@
 
     Purpose
     --------
-    This script allows the user to run simulation of the proposed algorithm,
-    by wrapping all the required procedures, calling the following functions:
+    This script allows the user to apply the proposed algorithms,
+    by wrapping all the required procedures and parameters for the simulation.
+    This scripts calls the following functions:
         * create_dataset: For creating training and testing datasets 
         * run_simulation: For training DR-MUSIC model
         * evaluate_model: For evaluating subspace hybrid models
@@ -33,7 +34,7 @@ from src.data_handler import *
 from src.criterions import *
 from src.methods import *
 from src.models import *
-from src.Run_Simulation import *
+from src.simulation_handler import *
 from src.utils import * 
 
 warnings.simplefilter("ignore")
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     commands = {"SAVE_TO_FILE"  : True,     # Saving results to file or present them over CMD
                 "CREATE_DATA"   : True,     # Creating new data
                 "LOAD_DATA"     : False,    # Loading data from dataset 
-                "TRAIN_MODE"    : False,     # Applying training operation
+                "TRAIN_MODE"    : True,     # Applying training operation
                 "SAVE_MODEL"    : False,    # Saving tuned model
                 "EVALUATE_MODE" : True}     # Evaluating desired algorithms
                 
@@ -180,9 +181,9 @@ if __name__ == "__main__":
         
         if commands["TRAIN_MODE"]:
             # Training aided parameters
-            optimal_lr = 0.0001         # Learning rate value
+            optimal_lr = 0.00001         # Learning rate value
             optimal_bs = 256            # Batch size value
-            epochs = 30                # Number of epochs
+            epochs = 50                # Number of epochs
             optimal_step = 100          # Number of steps for learning rate decay iteration
             optimal_gamma_val = 0.9      # learning rate decay value
             weight_decay_val = 1e-9
