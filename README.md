@@ -2,7 +2,7 @@
 This repository includes the source code used in our recent paper:
 
 Dor H. Shmuel, Julian P. Merkofer, Guy Revach, Ruud J. G. van Sloun, Nir Shlezinger
-"[SubspaceNet: Deep Learning-Aided Subspace Methods for DoA Estimation]"([](https://arxiv.org/abs/2306.02271))
+["SubspaceNet: Deep Learning-Aided Subspace Methods for DoA Estimation"](https://arxiv.org/abs/2306.02271)
 
 ## Absract
 Direction of arrival (DoA) estimation is a fundamental task in array processing. A popular family of DoA estimation algorithms are subspace methods, which operate by dividing the measurements into distinct signal and noise subspaces. Subspace methods, such as MUSIC and Root-MUSIC, rely on several restrictive assumptions, including narrow-band non-coherent sources and fully calibrated arrays, and their performance is considerably degraded when these do not hold.
