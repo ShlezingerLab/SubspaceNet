@@ -244,7 +244,7 @@ class SubspaceNet(nn.Module):
         Rx_imag = Rx_View[:, self.N:, :] # Shape: [Batch size, N, N])  
         Kx_tag = torch.complex(Rx_real, Rx_imag) # Shape: [Batch size, N, N])
         # Apply Gram operation diagonal loading
-        Rz = gram_diagonal_overload(Kx_tag, eps= 1) # Shape: [Batch size, N, N]
+        Rz = gram_diagonal_overload(Kx=Kx_tag, eps= 1, batch_size = self.BATCH_SIZE) # Shape: [Batch size, N, N]
         # Feed surrogate covariance to Root-MUSIC algorithm
         doa_prediction, doa_all_predictions, roots = root_music(Rz, self.M, self.BATCH_SIZE)
         return doa_prediction, doa_all_predictions, roots, Rz

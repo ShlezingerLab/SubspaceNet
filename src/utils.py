@@ -222,8 +222,8 @@ def get_k_peaks(grid_size: int, k: int, prediction: torch.Tensor):
 
     return doa_prediction[:k]
 
-# def gram_diagonal_overload(self, Kx: torch.Tensor, eps: float) -> torch.Tensor:
-def gram_diagonal_overload(self, Kx: torch.Tensor, eps: float, batch_size: int):
+# def gram_diagonal_overload(Kx: torch.Tensor, eps: float) -> torch.Tensor:
+def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     '''Multiply a matrix Kx with its Hermitian conjecture (gram matrix),
         and adds eps to the diagonal values of the matrix,
         ensuring a Hermitian and PSD (Positive Semi-Definite) matrix.

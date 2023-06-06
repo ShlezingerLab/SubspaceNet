@@ -155,13 +155,12 @@ def train_model(model, Train_data, Valid_data,
             Rx = Variable(Rx, requires_grad=True).to(device)
             DOA = Variable(DOA, requires_grad=True).to(device)
 
+            model_parameters = model(Rx)
             if model_type.startswith("DA-MUSIC") or model_type.startswith("DeepCNN"):
               # Deep Augmented MUSIC or DeepCNN
-              model_parameters = model(Rx)
               DOA_predictions = model_parameters
             else:
               # Default - SubSpaceNet
-              model_parameters = model(Rx, DOA.shape[1])
               DOA_predictions = model_parameters[0]
 
             ## Compute training loss
@@ -213,18 +212,15 @@ def train_model(model, Train_data, Valid_data,
                 valid_length += DOA.shape[0]
                 Rx = Rx.to(device)
                 DOA = DOA.to(device)
+                model_parameters = model(Rx)
                 if model_type.startswith("DA-MUSIC") or model_type.startswith("DeepCNN"):
-                  # Deep Augmented MUSIC
-                  model_parameters = model(Rx)
+                  # Deep Augmented MUSIC or DeepCNN
                   DOA_predictions = model_parameters
                 else:
                   # Default - SubSpaceNet
-                  model_parameters = model(Rx, DOA.shape[1])
                   DOA_predictions = model_parameters[0]
                 if model_type.startswith("DeepCNN"):
                   eval_loss = criterion(DOA_predictions.float(), DOA.float())
-                  # doa_label, doa_prediction = get_k_angles(181, 2, DOA_predictions, model_parameters)
-                  # prmse = eval_criterion(doa_label, doa_prediction)
                 else:
                   eval_loss = criterion(DOA_predictions, DOA)                 # Compute evaluation predictions loss
                 Overall_valid_loss += eval_loss.item()                          # add the batch evaluation loss to epoch loss
@@ -279,20 +275,17 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, mo
             test_length += DOA.shape[0]
             Rx = Rx.to(device)
             DOA = DOA.to(device)
+            model_parameters = model(Rx)
             if model_type.startswith("DA-MUSIC"):
               # Deep Augmented MUSIC
-              model_parameters = model(Rx)
               DOA_predictions = model_parameters
             elif model_type.startswith("DeepCNN"):
               # CNN
-              model_parameters = model(Rx)
               DOA_predictions = model_parameters
-              # DOA_predictions = get_k_angles(361, DOA.shape[1], DOA_predictions[0]) * D2R
               DOA_predictions = get_k_peaks(361, DOA.shape[1], DOA_predictions[0]) * D2R
               DOA_predictions = DOA_predictions.view(1, DOA_predictions.shape[0])
             else:
               # Default - SubSpaceNet
-              model_parameters = model(Rx, DOA.shape[1])
               DOA_predictions = model_parameters[0]
             eval_loss = criterion(DOA_predictions, DOA)                                     # Compute evaluation predictions loss
             loss += eval_loss.item()                                          # add the batch evaluation loss to epoch loss  
