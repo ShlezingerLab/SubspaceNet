@@ -1,8 +1,7 @@
 # SubspaceNet: Deep Learning-Aided Subspace Methods for DoA
 This repository includes the source code used in our recent paper:
 
-Dor H. Shmuel, Julian P. Merkofer, Guy Revach, Ruud J. G. van Sloun, Nir Shlezinger
-
+Dor H. Shmuel, Julian P. Merkofer, Guy Revach, Ruud J. G. van Sloun, and Nir Shlezinger,
 ["SubspaceNet: Deep Learning-Aided Subspace Methods for DoA Estimation"](https://arxiv.org/abs/2306.02271)
 
 ## Absract
