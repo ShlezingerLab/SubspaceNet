@@ -21,7 +21,8 @@ This repository consists of following Python scripts:
 * `src.utils.py` defines some helpful functions.
 
 ## Requirements
-This script requires that requirements.txt will be installed within the Python environment you are running in.
+This script requires that pyenv\requirements.txt will be installed within the Python environment you are running in.
+Another option in the activate pyEnv\SubspaceNetEnv python environment.
 
 ## Getting started
 If you just want to run the code, run main.py script (for nominal scenario, as detiled in the script).
