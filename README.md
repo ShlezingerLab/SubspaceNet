@@ -22,6 +22,7 @@ This repository consists of following Python scripts:
 
 ## Requirements
 This script requires that pyenv\requirements.txt will be installed within the Python environment you are running in.
+
 Another option in the activate pyEnv\SubspaceNetEnv python environment.
 
 ## Getting started
