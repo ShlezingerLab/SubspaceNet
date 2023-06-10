@@ -1,0 +1,9 @@
+# git ignore files
+*.pdf
+Figures/*.pdf
+__pycache__/*.pyc
+plotting.py
+plot_style.txt
+plotting
+Figures
+src/__pycache__
