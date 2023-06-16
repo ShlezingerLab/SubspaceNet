@@ -257,6 +257,58 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     Kx_Out = torch.stack(Kx_list, dim = 0)
     return Kx_Out
 
+def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
+                scenario: str, mode: str, eta: float, geo_noise_var: float,\
+                optimal_lr: float, weight_decay_val: float, batch_size: float,\
+                optimal_gamma_val: float, optimal_step:float, epochs: int,\
+                phase = "training", tau: int = None):
+    """
+    Prints a summary of the simulation parameters.
+
+    Args:
+    -----
+        model_type (str): The type of the model.
+        M (int): The number of sources.
+        N (int): The number of sensors.
+        T (float): The number of observations.
+        SNR (int): The signal-to-noise ratio.
+        scenario (str): The scenario of the signals.
+        mode (str): The nature of the sources.
+        eta (float): The spacing deviation.
+        geo_noise_var (float): The geometry noise variance.
+        optimal_lr (float): The optimal learning rate.
+        weight_decay_val (float): The weight decay value.
+        batch_size (float): The batch size.
+        optimal_gamma_val (float): The optimal gamma value.
+        optimal_step (float): The optimal step value.
+        epochs (int): The number of epochs.
+        phase (str, optional): The phase of the simulation. Defaults to "training", optional: "evaluation".
+        tau (int, optional): The number of lags for auto-correlation (relevant only for SubspaceNet model).
+
+    """
+    simulation_filename = f"{model_type}_M={M}_T={T}_SNR_{SNR}_tau={tau}_{scenario}_{mode}_eta={eta}_sv_noise={geo_noise_var}"
+    print("\n--- New Simulation ---\n")
+    print(f"Description: Simulation of {model_type}, {phase} stage")
+    print("System model parameters:")
+    print(f"Number of sources = {M}")
+    print(f"Number of sensors = {N}")
+    print(f"scenario = {scenario}")
+    print(f"Observations = {T}")
+    print(f"SNR = {SNR}, {mode} sources")
+    print(f"Spacing deviation (eta) = {eta}")
+    print(f"Geometry noise variance = {geo_noise_var}")
+    print("Simulation parameters:")
+    print(f"Model: {model_type}")
+    if phase.startswith("training"):
+        print(f"Epochs = {epochs}")
+        print(f"Batch Size = {batch_size}")
+        print(f"Learning Rate = {optimal_lr}")
+        print(f"Weight decay = {weight_decay_val}")
+        print(f"Gamma Value = {optimal_gamma_val}")
+        print(f"Step Value = {optimal_step}")
+    if model_type.startswith("SubspaceNet"):
+        print("Tau = {}".format(tau))
+
 if __name__ == "__main__":
     # sum_of_diag example
     matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -280,3 +332,26 @@ if __name__ == "__main__":
     k = 3
     prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
     get_k_peaks(grid_size, k, prediction)
+    
+    # print_simulation_summary
+    model_type = "DeepCNN"
+    M = 4
+    N = 8
+    T = 100
+    SNR = 10
+    scenario = "NarrowBand"
+    mode = "coherent"
+    eta = 0.1
+    geo_noise_var = 0.2
+    optimal_lr = 0.001
+    weight_decay_val = 0.0001
+    batch_size = 32
+    optimal_gamma_val = 0.5
+    optimal_step = 10
+    epochs = 100
+    phase = "training"
+    tau = None
+
+    simulation_summary(model_type, M, N, T, SNR, scenario, mode, eta, geo_noise_var,
+                            optimal_lr, weight_decay_val, batch_size, optimal_gamma_val,
+                            optimal_step, epochs, phase, tau)
