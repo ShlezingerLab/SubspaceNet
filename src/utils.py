@@ -259,8 +259,8 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
 
 def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
                 scenario: str, mode: str, eta: float, geo_noise_var: float,\
-                optimal_lr: float, weight_decay_val: float, batch_size: float,\
-                optimal_gamma_val: float, optimal_step:float, epochs: int,\
+                optimal_lr: float=None, weight_decay_val: float=None, batch_size: float=None,\
+                optimal_gamma_val: float=None, optimal_step:float=None, epochs: int=None,\
                 phase = "training", tau: int = None):
     """
     Prints a summary of the simulation parameters.

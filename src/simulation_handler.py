@@ -300,7 +300,7 @@ def evaluate_model(model, Data, criterion, plot_spec = False, figures = None, mo
 def evaluate_hybrid_model(model_hybrid, Data, system_model, criterion = RMSPE,
     model_name=None, algorithm = "music", plot_spec = False, figures = None):
   # Initialize parameters for evaluation
-  mb = ModelBasedMethods(system_model)
+  mb_methods = ModelBasedMethods(system_model)
   hybrid_loss = [] 
   model_hybrid.eval()
   # Gradients calculation isn't required for evaluation
@@ -312,8 +312,8 @@ def evaluate_hybrid_model(model_hybrid, Data, system_model, criterion = RMSPE,
             
       ## Hybrid MUSIC
       if algorithm.startswith("music"):
-        DOA_pred, spectrum, M = mb.hybrid_MUSIC(model_hybrid, Rx, system_model.scenario)
-        DOA_pred = mb.angels[DOA_pred] * R2D
+        DOA_pred, spectrum, M = mb_methods.hybrid_MUSIC(model_hybrid, Rx, system_model.scenario)
+        DOA_pred = mb_methods.angels[DOA_pred] * R2D
         # Take the first M predictions
         predicted_DOA = DOA_pred[:M][::-1]  
         while(predicted_DOA.shape[0] < M):
@@ -329,7 +329,7 @@ def evaluate_hybrid_model(model_hybrid, Data, system_model, criterion = RMSPE,
         
       ## Hybrid ESPRIT
       elif algorithm.startswith("esprit"):
-        predicted_DOA, M = mb.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=system_model.scenario)
+        predicted_DOA, M = mb_methods.esprit(X=None, HYBRID = True, model_ESPRIT=model_hybrid, Rz=Rx, scenario=system_model.scenario)
         while(predicted_DOA.shape[0] < M):
           print("Cant estimate M sources - hybrid {}".format(algorithm))
           predicted_DOA = np.insert(predicted_DOA, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)   

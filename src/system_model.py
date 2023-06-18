@@ -15,7 +15,7 @@ This script defines the SystemModel class for defining the settings of the DoA e
 import numpy as np
 
 class SystemModel(object):
-    def __init__(self, scenario:str , N:int, M:int, freq_values:list = None):
+    def __init__(self, scenario:str , N:int, M:int, freq_values:list =[0, 500]):
         
         """Class used for defining the settings of the system model.
 
@@ -56,11 +56,9 @@ class SystemModel(object):
 
         """
         # Define minimal frequency value
-        self.min_freq = {"NarrowBand": None,
-                         "Broadband": freq_values[0]}
+        self.min_freq = {"NarrowBand": None, "Broadband": freq_values[0]}
         # Define maximal frequency value
-        self.max_freq = {"NarrowBand": None,
-                         "Broadband": freq_values[1]}
+        self.max_freq = {"NarrowBand": None, "Broadband": freq_values[1]}
         # Frequency range of interest
         self.f_rng = {"NarrowBand": None,
                       "Broadband": np.linspace(start=self.min_freq["Broadband"], stop=self.max_freq["Broadband"],\
