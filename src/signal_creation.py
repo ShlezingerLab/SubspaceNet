@@ -39,11 +39,11 @@ class Samples(SystemModel):
         signal_creation(mode: str, S_mean=0, S_Var=1, SNR=10): Creates signals based on the specified mode and parameters.
     """
     
-    def __init__(self, scenario:str , N:int, M:int, observations:int, freq_values:list = None):
+    def __init__(self, scenario:str , N:int, M:int, observations:int, freq_values:list = [0, 500]):
         """Initializes a Samples object.
 
         Args:
-            scenario (str): Signals type. Options: "NarrowBand", "Broadband_OFDM", "Broadband_simple".
+            scenario (str): Signals type. Options: "NarrowBand", "Broadband".
             N (int): Number of sensors.
             M (int): Number of sources.
             observations (int): Number of observations.
@@ -97,7 +97,7 @@ class Samples(SystemModel):
 
         Args:
         -----
-            mode (str): Mode of signal creation.
+            mode (str): Mode of signal creation. Options: "non-coherent", "coherent"
             N_mean (float, optional): Mean of the noise. Defaults to 0.
             N_Var (float, optional): Variance of the noise. Defaults to 1.
             S_mean (float, optional): Mean of the signal. Defaults to 0.
@@ -202,27 +202,8 @@ class Samples(SystemModel):
                                 + 1j * np.random.randn(1, self.T)) + S_mean
                 return np.repeat(sig, self.M, axis = 0)
         
-        # Simple Broadband signal creation
-        elif self.scenario.startswith("Broadband_simple"):
-            # haven't been tested
-            # generate M random carriers
-            carriers = np.random.choice(self.f_rng["Broadband"], self.M).reshape((self.M, 1))
-            
-            # create M non-coherent signals
-            if mode == "non-coherent":
-                carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(self.M) + 1j * np.random.randn(self.M))
-                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers\
-                                @ self.time_axis["Broadband"].reshape((1, len(self.time_axis["Broadband"])))).T
-                return np.fft.fft(carriers_signals.T)
-            
-            # Coherent signals: same amplitude and phase for all signals 
-            if mode == "coherent":
-                carriers_amp = amplitude * (np.sqrt(2) / 2) * (np.random.randn(1) + 1j * np.random.randn(1))
-                carriers_signals = carriers_amp * np.exp(2 * np.pi * 1j * carriers[0] * self.time_axis["Broadband"])
-                return np.tile(np.fft.fft(carriers_signals), (self.M, 1))
-
         # OFDM Broadband signal creation
-        elif self.scenario.startswith("Broadband_OFDM"):
+        elif self.scenario.startswith("Broadband"):
             num_sub_carriers = self.max_freq["Broadband"]   # number of subcarriers per signal
             # create M non-coherent signals
             signal = np.zeros((self.M, len(self.time_axis["Broadband"]))) + 1j * np.zeros((self.M, len(self.time_axis["Broadband"])))

@@ -257,57 +257,6 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     Kx_Out = torch.stack(Kx_list, dim = 0)
     return Kx_Out
 
-def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
-                scenario: str, mode: str, eta: float, geo_noise_var: float,\
-                optimal_lr: float=None, weight_decay_val: float=None, batch_size: float=None,\
-                optimal_gamma_val: float=None, optimal_step:float=None, epochs: int=None,\
-                phase = "training", tau: int = None):
-    """
-    Prints a summary of the simulation parameters.
-
-    Args:
-    -----
-        model_type (str): The type of the model.
-        M (int): The number of sources.
-        N (int): The number of sensors.
-        T (float): The number of observations.
-        SNR (int): The signal-to-noise ratio.
-        scenario (str): The scenario of the signals.
-        mode (str): The nature of the sources.
-        eta (float): The spacing deviation.
-        geo_noise_var (float): The geometry noise variance.
-        optimal_lr (float): The optimal learning rate.
-        weight_decay_val (float): The weight decay value.
-        batch_size (float): The batch size.
-        optimal_gamma_val (float): The optimal gamma value.
-        optimal_step (float): The optimal step value.
-        epochs (int): The number of epochs.
-        phase (str, optional): The phase of the simulation. Defaults to "training", optional: "evaluation".
-        tau (int, optional): The number of lags for auto-correlation (relevant only for SubspaceNet model).
-
-    """
-    simulation_filename = f"{model_type}_M={M}_T={T}_SNR_{SNR}_tau={tau}_{scenario}_{mode}_eta={eta}_sv_noise={geo_noise_var}"
-    print("\n--- New Simulation ---\n")
-    print(f"Description: Simulation of {model_type}, {phase} stage")
-    print("System model parameters:")
-    print(f"Number of sources = {M}")
-    print(f"Number of sensors = {N}")
-    print(f"scenario = {scenario}")
-    print(f"Observations = {T}")
-    print(f"SNR = {SNR}, {mode} sources")
-    print(f"Spacing deviation (eta) = {eta}")
-    print(f"Geometry noise variance = {geo_noise_var}")
-    print("Simulation parameters:")
-    print(f"Model: {model_type}")
-    if phase.startswith("training"):
-        print(f"Epochs = {epochs}")
-        print(f"Batch Size = {batch_size}")
-        print(f"Learning Rate = {optimal_lr}")
-        print(f"Weight decay = {weight_decay_val}")
-        print(f"Gamma Value = {optimal_gamma_val}")
-        print(f"Step Value = {optimal_step}")
-    if model_type.startswith("SubspaceNet"):
-        print("Tau = {}".format(tau))
 
 if __name__ == "__main__":
     # sum_of_diag example

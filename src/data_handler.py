@@ -100,8 +100,8 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
             # Samples model creation
             samples_model.set_doa(true_doa)
             # Observations matrix creation
-            X = torch.tensor(samples_model.samples_creation(mode = mode, N_mean= 0,
-                            N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR, eta = eta,
+            X = torch.tensor(samples_model.samples_creation(mode = mode, N_mean= 0,\
+                            N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR, eta = eta,\
                             geo_noise_var = geo_noise_var)[0], dtype=torch.complex64) 
             if model_type.startswith("SubspaceNet"):
                 # Generate auto-correlation tensor                                   
@@ -123,9 +123,10 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
                         f"_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5'
         samples_model_filename = f"samples_model_{scenario}_{mode}_{samples_size}_M={M}_N={N}" +\
                         f"_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5'
-        torch.save(obj= model_dataset, f=datasets_path / model_dataset_filename)
-        torch.save(obj= generic_dataset, f=datasets_path / generic_dataset_filename)
-        torch.save(obj= samples_model, f=datasets_path / "TestData" / samples_model_filename)
+        torch.save(obj= model_dataset, f=datasets_path / phase / model_dataset_filename)
+        torch.save(obj= generic_dataset, f=datasets_path / phase / generic_dataset_filename)
+        if phase.startswith("test"):
+            torch.save(obj= samples_model, f=datasets_path / phase/ samples_model_filename)
     
     return model_dataset, generic_dataset, samples_model
 
@@ -267,26 +268,26 @@ def load_datasets(model_type: str, scenario: str, mode: str, samples_size: float
     if is_training:
         # Load training dataset
         try:
-            train_dataset = read_data(datasets_path / "TrainingData" / model_dataset_filename)
+            train_dataset = read_data(datasets_path / "train" / model_dataset_filename)
             datasets.append(train_dataset)
         except:
             print("Training dataset doesn't exist")
     # Load test dataset
     try:
-        test_dataset = read_data(datasets_path / "TestData" / model_dataset_filename)
+        test_dataset = read_data(datasets_path / "test" / model_dataset_filename)
         datasets.append(test_dataset)
     except:
         print("Test dataset doesn't exist")
     # Load generic test dataset
     try:
-        generic_test_dataset = read_data(datasets_path / "TestData" / generic_dataset_filename)
+        generic_test_dataset = read_data(datasets_path / "test" / generic_dataset_filename)
         datasets.append(generic_test_dataset)
     except:
         print("Generic test dataset doesn't exist")
     # Load samples models
     try:
-        samples_model = read_data(datasets_path / "TestData" / samples_model_filename)
+        samples_model = read_data(datasets_path / "test" / samples_model_filename)
+        datasets.append(samples_model)
     except:
         print("Samples model dataset doesn't exist")
-        datasets.append(samples_model)
     return datasets

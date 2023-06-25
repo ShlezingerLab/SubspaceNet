@@ -21,7 +21,7 @@ class SystemModel(object):
 
         Attributes:
         -----------
-            scenario (str): Signals type. Options: "NarrowBand", "Broadband_OFDM", "Broadband_simple".
+            scenario (str): Signals type. Options: "NarrowBand", "Broadband".
             N (int): Number of sensors.
             M (int): Number of sources.
             freq_values (list, optional): Frequency range for broadband signals. Defaults to None.
@@ -101,9 +101,9 @@ class SystemModel(object):
             mis_distance = np.random.uniform(low= -1 * eta, high= eta, size=self.N)
             # define noise added to steering vector
             mis_geometry_noise = np.sqrt(geo_noise_var) * (np.random.randn(self.N))
-            return np.exp(-2 * 1j * np.pi * f_sv[self.scenario]\
-                    * (mis_distance + self.dist[self.scenario]) * self.array\
-                    * np.sin(theta)) + mis_geometry_noise
+            return np.exp(-2 * 1j * np.pi * f_sv[self.scenario] * 
+                        (mis_distance + self.dist[self.scenario]) * self.array * np.sin(theta)) +\
+                        mis_geometry_noise
             
     def __str__(self):
         """Returns a string representation of the SystemModel object.
