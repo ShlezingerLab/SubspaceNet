@@ -248,7 +248,7 @@ class ModelBasedMethods(object):
         
         # Predict the covariance matrix using the DR model 
         model_MUSIC.eval()
-        R_x = model_MUSIC(Rz, M)[3]
+        R_x = model_MUSIC(Rz)[3]
         R_x = np.array(R_x.squeeze())
         
         # Find eigenvalues and eigenvectors given the hybrid covariance
@@ -314,30 +314,35 @@ class ModelBasedMethods(object):
         elif HYBRID:
             # Predict the covariance matrix using the DR model
             model_ESPRIT.eval()
-            R_x = model_ESPRIT(Rz, M)[3]
+            R_x = model_ESPRIT(Rz)[3]
             R_x = np.array(R_x.squeeze())
         else:
-            R_x = np.cov(X)                                                     # Create covariance matrix from samples
-        
+            # Create covariance matrix from samples
+            R_x = np.cov(X)                                                     
         if scenario.startswith("Broadband"):
             # hard-coded for OFDM scenario within range [0-500] Hz
             f = 500
         else:
             f = 1
-        
-        eigenvalues, eigenvectors = np.linalg.eig(R_x)  # Apply eigenvalue decomposition (EVD)
-        eigenvectors = eigenvectors[:, np.argsort(eigenvalues)[::-1]]   # Sort eigenvectors based on eigenvalues order 
-        Us, Un= eigenvectors[:, 0:M], eigenvectors[:, M:]   # Create distinction between noise and signal subspaces 
-        # Us_upper, Us_lower = Us[0:N-1], Us[1:N]     # separate the first M columns of the signal subspace
-        Us_upper, Us_lower = Us[0:R_x.shape[0]-1], Us[1:R_x.shape[0]]     # separate the first M columns of the signal subspace
-        
+        # Apply eigenvalue decomposition (EVD)
+        eigenvalues, eigenvectors = np.linalg.eig(R_x)
+        # Sort eigenvectors based on eigenvalues order 
+        eigenvectors = eigenvectors[:, np.argsort(eigenvalues)[::-1]]
+        # Create distinction between noise and signal subspaces
+        Us, Un= eigenvectors[:, 0:M], eigenvectors[:, M:]
+        # Separate the first M columns of the signal subspace    
+        Us_upper, Us_lower = Us[0:R_x.shape[0]-1], Us[1:R_x.shape[0]]
+        # Generate Phi matrix     
         phi = np.linalg.pinv(Us_upper) @ Us_lower
-        phi_eigenvalues, _ = np.linalg.eig(phi)                          # Find the eigenvalues and eigenvectors using EVD
-        eigenvalues_angle = np.angle(phi_eigenvalues)                                   # Calculate the phase component of the roots 
-        DOA_pred = -np.arcsin((1/(2 * np.pi * self.dist[scenario] * f)) * eigenvalues_angle)        # Calculate the DOA out of the phase component
-        DOA_pred = (180 / np.pi) * DOA_pred                                     # Convert from radians to degrees
+        # Find the eigenvalues of Phi using EVD
+        phi_eigenvalues, _ = np.linalg.eig(phi)
+        # Calculate the phase component of the roots
+        eigenvalues_angle = np.angle(phi_eigenvalues)
+        # Calculate the DOA out of the phase component
+        DOA_pred = -np.arcsin((1/(2 * np.pi * self.dist[scenario] * f)) * eigenvalues_angle)
+        # Convert from radians to degrees
+        DOA_pred = R2D * DOA_pred
         return DOA_pred, M
-
     
     def MVDR(self, X, NUM_OF_SOURCES:bool=True, SPS:bool=False, sub_array_size=0,
                HYBRID = False, model_mvdr=None, Rz=None, scenario='NarrowBand', eps = 0):
@@ -364,7 +369,7 @@ class ModelBasedMethods(object):
             if HYBRID:
                 # Predict the covariance matrix using the DR model
                 model_mvdr.eval()
-                R_x = model_mvdr(Rz, M)[3]
+                R_x = model_mvdr(Rz)[3]
                 R_x = np.array(R_x.squeeze())
             else:
                 R_x = np.cov(X)                                                     # Create covariance matrix from samples
