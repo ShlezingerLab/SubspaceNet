@@ -179,9 +179,9 @@ class SubspaceNet(nn.Module):
         self.conv1 = nn.Conv2d(self.tau, 16, kernel_size = 2)
         self.conv2 = nn.Conv2d(32, 32, kernel_size = 2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size = 2)
-        self.deconv1 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
-        self.deconv2 = nn.ConvTranspose2d(64, 16, kernel_size= 2)
-        self.deconv3 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
+        self.deconv2 = nn.ConvTranspose2d(128, 32, kernel_size= 2)
+        self.deconv3 = nn.ConvTranspose2d(64, 16, kernel_size= 2)
+        self.deconv4 = nn.ConvTranspose2d(32, 1, kernel_size= 2)
         self.DropOut = nn.Dropout(0.2)
         self.ReLU = nn.ReLU()
 
@@ -229,14 +229,14 @@ class SubspaceNet(nn.Module):
         x = self.conv3(x)
         x = self.anti_rectifier(x)
         # DCNN block #1
-        x = self.deconv1(x)
+        x = self.deconv2(x)
         x = self.anti_rectifier(x)
         # DCNN block #2
-        x = self.deconv2(x)
+        x = self.deconv3(x)
         x = self.anti_rectifier(x)
         # DCNN block #3
         x = self.DropOut(x)
-        Rx = self.deconv3(x)
+        Rx = self.deconv4(x)
         # Reshape Output shape: [Batch size, 2N, N]
         Rx_View = Rx.view(Rx.size(0),Rx.size(2),Rx.size(3))
         # Real and Imaginary Reconstruction
