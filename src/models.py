@@ -502,7 +502,7 @@ def root_music(Rz: torch.Tensor, M: int, batch_size: int):
         # Calculate the phase component of the roots
         roots_angels_all = torch.angle(roots) 
         # Calculate doa
-        doa_pred_all = torch.arcsin((1/(2 * np.pi)) * roots_angels_all)
+        doa_pred_all = torch.arcsin((1/(2 * np.pi * dist * f)) * roots_angels_all)
         doa_all_batches.append(doa_pred_all)
         roots_to_return = roots
         # Take only roots which inside the unit circle

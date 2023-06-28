@@ -321,7 +321,11 @@ class MUSIC(SubspaceMethod):
         spectrum = np.sum(spectrum, axis=0)
         # Find spectrum peaks
         doa_predictions = self.get_spectrum_peaks(spectrum)
-        return doa_predictions, spectrum, M     
+        # Associate predictions to angels
+        predictions = self._angels[doa_predictions] * R2D
+        # Take first M predictions
+        predictions = predictions[:M][::-1]
+        return predictions, spectrum, M     
         
     def narrowband(self, X:np.ndarray, known_num_of_sources:bool =True, mode: str="sample", model: SubspaceNet=None):
         '''
@@ -357,7 +361,11 @@ class MUSIC(SubspaceMethod):
         spectrum, _ = self.spectrum_calculation(Un, f = f)
         # Find spectrum peaks
         doa_predictions = self.get_spectrum_peaks(spectrum)
-        return doa_predictions, spectrum, M
+        # Associate predictions to angels
+        predictions = self._angels[doa_predictions] * R2D
+        # Take first M predictions
+        predictions = predictions[:M][::-1]
+        return predictions, spectrum, M
 
 class RootMUSIC(SubspaceMethod):
     '''
@@ -423,12 +431,12 @@ class RootMUSIC(SubspaceMethod):
         roots = list(find_roots(coefficients))
         # Sort roots by their distance from the unit circle
         roots.sort(key = lambda x : abs(abs(x) - 1))
+        # Calculate all predicted angels for spectrum presentation
+        doa_predictions_all, roots_angels_all = self.extract_predictions_from_roots(roots)
         # Take only roots which inside the unit circle
         roots_inside = [root for root in roots if ((abs(root) - 1) < 0)][:M]
         # Calculate DoA out of the roots inside the unit circle
         doa_predictions, _ = self.extract_predictions_from_roots(roots_inside)
-        # Calculate all predicted angels for spectrum presentation
-        doa_predictions_all, roots_angels_all = self.extract_predictions_from_roots(roots_inside)
         return doa_predictions, roots, M, doa_predictions_all, roots_angels_all
     
     def extract_predictions_from_roots(self, roots: np.ndarray):
@@ -569,5 +577,6 @@ class MVDR(MUSIC):
             # Calculate beamformer gain at specific angle 
             response_curve.append(((np.conj(optimal_weights).T @ diagonal_loaded_covariance @ optimal_weights).reshape((1))).item())
         response_curve = np.array(response_curve, dtype=complex)
-        return response_curve
+        predictions = None
+        return predictions, response_curve
     

@@ -11,7 +11,7 @@ In this work we propose SubspaceNet; a data-driven DoA universal estimator which
 ## Overview
 This repository consists of following Python scripts:
 * `main.py` this scripts is the interface for applying the proposed algorithms, by wrapping all the required procedures and parameters for the simulation.
-* `src.simulation_handler.py` handling the simulation of the algorithms, including the training and evaluation stage.
+* `src.training.py` handling the simulation of the algorithms, including the training and evaluation stage.
 * `src.criterions.py` defines document several loss functions (RMSPELoss and MSPELoss).
 * `src.data_handler.py` handles the creation and processing of synthetic datasets based on specified parameters and model types.
 * `src.methods.py` defines the classical and model-based methods, which used for simulation.
