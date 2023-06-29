@@ -281,26 +281,3 @@ if __name__ == "__main__":
     k = 3
     prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
     get_k_peaks(grid_size, k, prediction)
-    
-    # print_simulation_summary
-    model_type = "DeepCNN"
-    M = 4
-    N = 8
-    T = 100
-    SNR = 10
-    scenario = "NarrowBand"
-    mode = "coherent"
-    eta = 0.1
-    geo_noise_var = 0.2
-    optimal_lr = 0.001
-    weight_decay_val = 0.0001
-    batch_size = 32
-    optimal_gamma_val = 0.5
-    optimal_step = 10
-    epochs = 100
-    phase = "training"
-    tau = None
-
-    simulation_summary(model_type, M, N, T, SNR, scenario, mode, eta, geo_noise_var,
-                            optimal_lr, weight_decay_val, batch_size, optimal_gamma_val,
-                            optimal_step, epochs, phase, tau)

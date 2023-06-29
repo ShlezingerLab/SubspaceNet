@@ -44,8 +44,7 @@ from torch.optim import lr_scheduler
 from sklearn.model_selection import train_test_split
 from src.utils import *
 from src.criterions import *
-from src.system_model import SystemModel
-from src.methods import MUSIC, RootMUSIC, MVDR, Esprit
+from src.system_model import SystemModel, SystemModelParams
 from src.models import SubspaceNet, DeepCNN, DeepAugmentedMUSIC
 from src.evaluation import evaluate_model
 
@@ -129,13 +128,14 @@ class TrainingParams(object):
     """
     # Assign the desired model for training
     if self.model_type.startswith("DA-MUSIC"):
-      model = DeepAugmentedMUSIC(N=system_model.N, T=system_model.T, M=system_model.M)
+      model = DeepAugmentedMUSIC(N=system_model.params.N, T=system_model.params.T, M=system_model.params.M)
     elif self.model_type.startswith("DeepCNN"):
-      model = DeepCNN(N=system_model.N, grid_size=361)
+      model = DeepCNN(N=system_model.params.N, grid_size=361)
     elif self.model_type.startswith("SubspaceNet"):
       if not isinstance(tau, int):
         raise ValueError("TrainingParams.set_model: tau parameter must be provided for SubspaceNet model")
-      model = SubspaceNet(tau=tau, M=system_model.M)
+      self.tau = tau
+      model = SubspaceNet(tau=tau, M=system_model.params.M)
     else:
       raise Exception(f"TrainingParams.set_model: Model type {self.model_type} is not defined")
     # assign model to device
@@ -408,9 +408,8 @@ def plot_learning_curve(epoch_list, train_loss: list, validation_loss: list):
     plt.legend(loc='best')
     plt.show()
 
-def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
-                scenario: str, mode: str, eta: float, geo_noise_var: float,\
-                training_parameters:TrainingParams = None, phase = "training", tau: int = None):
+def simulation_summary(system_model_params: SystemModelParams, model_type: str,\
+    parameters:TrainingParams = None, phase = "training"):
     """
     Prints a summary of the simulation parameters.
 
@@ -421,11 +420,11 @@ def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
         N (int): The number of sensors.
         T (float): The number of observations.
         SNR (int): The signal-to-noise ratio.
-        scenario (str): The scenario of the signals.
+        signal_type (str): The signal_type of the signals.
         mode (str): The nature of the sources.
         eta (float): The spacing deviation.
         geo_noise_var (float): The geometry noise variance.
-        training_parameters (TrainingParams): instance of the training parameters object
+        parameters (TrainingParams): instance of the training parameters object
         phase (str, optional): The phase of the simulation. Defaults to "training", optional: "evaluation".
         tau (int, optional): The number of lags for auto-correlation (relevant only for SubspaceNet model).
 
@@ -433,21 +432,21 @@ def simulation_summary(model_type: str, M: int, N: int, T: float, SNR: int,\
     print("\n--- New Simulation ---\n")
     print(f"Description: Simulation of {model_type}, {phase} stage")
     print("System model parameters:")
-    print(f"Number of sources = {M}")
-    print(f"Number of sensors = {N}")
-    print(f"scenario = {scenario}")
-    print(f"Observations = {T}")
-    print(f"SNR = {SNR}, {mode} sources")
-    print(f"Spacing deviation (eta) = {eta}")
-    print(f"Geometry noise variance = {geo_noise_var}")
+    print(f"Number of sources = {system_model_params.M}")
+    print(f"Number of sensors = {system_model_params.N}")
+    print(f"signal_type = {system_model_params.signal_type}")
+    print(f"Observations = {system_model_params.T}")
+    print(f"SNR = {system_model_params.snr}, {system_model_params.signal_nature} sources")
+    print(f"Spacing deviation (eta) = {system_model_params.eta}")
+    print(f"Geometry noise variance = {system_model_params.sv_noise_var}")
     print("Simulation parameters:")
     print(f"Model: {model_type}")
     if model_type.startswith("SubspaceNet"):
-        print("Tau = {}".format(tau))
+        print("Tau = {}".format(parameters.tau))
     if phase.startswith("training"):
-        print(f"Epochs = {training_parameters.epochs}")
-        print(f"Batch Size = {training_parameters.batch_size}")
-        print(f"Learning Rate = {training_parameters.learning_rate}")
-        print(f"Weight decay = {training_parameters.weight_decay}")
-        print(f"Gamma Value = {training_parameters.gamma}")
-        print(f"Step Value = {training_parameters.step_size}")
+        print(f"Epochs = {parameters.epochs}")
+        print(f"Batch Size = {parameters.batch_size}")
+        print(f"Learning Rate = {parameters.learning_rate}")
+        print(f"Weight decay = {parameters.weight_decay}")
+        print(f"Gamma Value = {parameters.gamma}")
+        print(f"Step Value = {parameters.step_size}")

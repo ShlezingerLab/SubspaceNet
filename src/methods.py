@@ -116,9 +116,9 @@ class SubspaceMethod(object):
                 covariance_mat (np.ndarray): Covariance matrix.
             '''
             # Define the sub-arrays size
-            sub_array_size = int(self.system_model.N / 2) + 1
+            sub_array_size = int(self.system_model.params.N / 2) + 1
             # Define the number of sub-arrays
-            number_of_sub_arrays = self.system_model.N - sub_array_size + 1
+            number_of_sub_arrays = self.system_model.params.N - sub_array_size + 1
             # Initialize covariance matrix
             covariance_mat = np.zeros((sub_array_size, sub_array_size)) +\
                 1j * np.zeros((sub_array_size, sub_array_size))
@@ -294,7 +294,7 @@ class MUSIC(SubspaceMethod):
         number_of_bins = int(self.system_model.max_freq["Broadband"] / 10)
         # Whether the number of sources is given
         if known_num_of_sources:
-            M = self.system_model.M                                                
+            M = self.system_model.params.M                                             
         else:
             # clustering technique                                  
             pass
@@ -346,7 +346,7 @@ class MUSIC(SubspaceMethod):
         '''
         # Whether the number of sources is given
         if known_num_of_sources:
-            M = self.system_model.M                                             
+            M = self.system_model.params.M                                             
         else:
             # clustering technique                                  
             pass
@@ -356,7 +356,7 @@ class MUSIC(SubspaceMethod):
         Un, _ = self.subspace_separation(covariance_mat=covariance_mat, M=M)
         # TODO: Check if this condition is hold after the change
         # Assign the frequency for steering vector calculation (multiplied in self.dist to get dist = 1/2)
-        f = self.system_model.max_freq[self.system_model.scenario]
+        f = self.system_model.max_freq[self.system_model.params.signal_type]
         # Generate the MUSIC spectrum
         spectrum, _ = self.spectrum_calculation(Un, f = f)
         # Find spectrum peaks
@@ -415,7 +415,7 @@ class RootMUSIC(SubspaceMethod):
         '''
         # Whether the number of sources is given
         if known_num_of_sources:
-            M = self.system_model.M                                             
+            M = self.system_model.params.M                                             
         else:
             # clustering technique                                  
             pass
@@ -504,7 +504,7 @@ class Esprit(RootMUSIC):
         '''
         # Whether the number of sources is given
         if known_num_of_sources:
-            M = self.system_model.M                                             
+            M = self.system_model.params.M                                         
         else:
             # clustering technique                                  
             pass
@@ -568,10 +568,11 @@ class MVDR(MUSIC):
         inv_covariance = np.linalg.inv(diagonal_loaded_covariance)
         # TODO: Check if this condition is hold after the change
         # Assign the frequency for steering vector calculation (multiplied in self.dist to get dist = 1/2)
-        f = self.system_model.max_freq[self.system_model.scenario]
+        f = self.system_model.max_freq[self.system_model.params.signal_type]
         for angle in self._angels:
             # Calculate the steering vector
-            a = self.system_model.steering_vec(theta = angle, f= f, array_form = "ULA").reshape((self.system_model.N, 1))
+            a = self.system_model.steering_vec(theta = angle, f= f, array_form = "ULA")\
+                .reshape((self.system_model.params.N, 1))
             # Adaptive calculation of optimal_weights
             optimal_weights = (inv_covariance @ a) / (np.conj(a).T @ inv_covariance @ a)
             # Calculate beamformer gain at specific angle 

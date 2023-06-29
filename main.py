@@ -12,7 +12,7 @@
     by wrapping all the required procedures and parameters for the simulation.
     This scripts calls the following functions:
         * create_dataset: For creating training and testing datasets 
-        * run_simulation: For training DR-MUSIC model
+        * training: For training DR-MUSIC model
         * evaluate_model: For evaluating subspace hybrid models
 
     This script requires that requirements.txt will be installed within the Python
@@ -25,6 +25,7 @@ import torch
 import os
 import matplotlib.pyplot as plt
 import warnings
+from src.system_model import SystemModelParams
 from src.signal_creation import *
 from src.data_handler import *
 from src.criterions import *
@@ -68,21 +69,24 @@ if __name__ == "__main__":
     # Define DNN model
     model_type = "SubspaceNet" # Set model type, options: "DA-MUSIC", "DeepCNN"  
     tau = 8 # Number of lags, relevant for "SubspaceNet" model
-    ## Define system model parameters
-    N = 8       # Number of sensors
-    M = 2       # number of sources
-    T = 100     # Number of observations, ideal >= 200
-    SNR = 10    # Signal to noise ratio, ideal = 10
-    ## Define signal parameters
-    scenario = "NarrowBand" # signals type, options: "NarrowBand", "Broadband".
-    mode = "coherent"   # signals nature, options: "non-coherent", "coherent"
-    ## Array calibration values
-    eta = 0                 # Deviation from sensor location, normalized by wavelength, ideal = 0
-    geo_noise_var = 0       # Added noise for sensors response
-    ## Simulation parameters
+    # Define system model parameters
+    system_model_params = SystemModelParams()\
+        .set_num_sensors(8)\
+        .set_num_sources(2)\
+        .set_num_observations(100)\
+        .set_snr(10)\
+        .set_signal_type("NarrowBand")\
+        .set_signal_nature("coherent")\
+        .set_sensors_dev(eta=0)\
+        .set_sv_noise(0)
+    # Define samples size
     samples_size = 100      # Overall dateset size
-    train_test_ratio = 1  # training and testing datasets ratio 
-    simulation_filename = f"{model_type}_M={M}_T={T}_SNR_{SNR}_tau={tau}_{scenario}_{mode}_eta={eta}_sv_noise={geo_noise_var}"
+    train_test_ratio = 1  # training and testing datasets ratio
+    simulation_filename = f"{model_type}_M={system_model_params.M}_"+\
+        f"T={system_model_params.T}_SNR_{system_model_params.snr}_"+\
+        f"tau={tau}_{system_model_params.signal_type}_"+\
+        f"{system_model_params.signal_nature}_eta={system_model_params.eta}_"+\
+        f"sv_noise={system_model_params.sv_noise_var}"
     # Print new simulation intro
     print("------------------------------------")
     print("---------- New Simulation ----------")
@@ -99,26 +103,26 @@ if __name__ == "__main__":
         print("Creating Data...")
         if create_training_data:
             # Generate training dataset 
-            train_dataset, _, _ = create_dataset(scenario= scenario, mode= mode, N= N, M= M , T= T,\
+            train_dataset, _, _ = create_dataset(system_model_params = system_model_params,\
                 samples_size = samples_size, tau = tau, model_type = model_type,\
-                Save = True, datasets_path = datasets_path, true_doa = None, SNR = SNR,\
-                eta=eta, geo_noise_var = geo_noise_var, phase = "train")
+                save_datasets= True, datasets_path = datasets_path, true_doa = None, phase = "train")
         if create_testing_data:
             # Generate test dataset
-            test_dataset, generic_test_dataset, samples_model = create_dataset(scenario = scenario, mode = mode,\
-                N= N, M= M , T= T, samples_size = int(train_test_ratio * samples_size), tau = tau,\
-                model_type = model_type, Save = True, datasets_path = datasets_path,\
-                true_doa = None, SNR = SNR, eta = eta, geo_noise_var = geo_noise_var, phase = "test")
+            test_dataset, generic_test_dataset, samples_model = create_dataset(
+                system_model_params = system_model_params,\
+                samples_size = int(train_test_ratio * samples_size), tau = tau,\
+                model_type = model_type, save_datasets = True, datasets_path = datasets_path,\
+                true_doa = None, phase = "test")
     # Datasets loading
     if commands["LOAD_DATA"]:
         train_dataset, test_dataset, generic_test_dataset, samples_model = load_datasets(
-            model_type, scenario, mode, samples_size, M, N, T, SNR, eta, geo_noise_var,\
-            datasets_path=datasets_path, is_training = True)
+            system_model_params = system_model_params, model_type=model_type,
+            samples_size=samples_size, datasets_path=datasets_path, is_training = True)
 
     # Training stage
     if commands["TRAIN_MODEL"]:
         # Assign the training parameters object
-        training_parameters = TrainingParams(model_type=model_type)\
+        simulation_parameters = TrainingParams(model_type=model_type)\
             .set_batch_size(batch_size=256).set_epochs(epochs=10)\
             .set_model(system_model=samples_model, tau=tau)\
             .set_optimizer(optimizer="Adam", learning_rate=0.00001, weight_decay=1e-9)\
@@ -126,14 +130,12 @@ if __name__ == "__main__":
             .set_schedular(step_size=100, gamma=0.9)\
             .set_criterion()
         if commands["LOAD_MODEL"]:
-            training_parameters.load_model(loading_path=saving_path / "final_models" /simulation_filename)
+            simulation_parameters.load_model(loading_path=saving_path / "final_models" /simulation_filename)
         # Print training simulation details
-        simulation_summary(model_type=model_type, M=M, N=N, T=T, SNR=SNR,\
-            scenario=scenario, mode=mode, eta=eta, geo_noise_var=geo_noise_var,\
-            training_parameters = training_parameters,\
-            phase="training", tau=tau)
+        simulation_summary(system_model_params = system_model_params, model_type=model_type,\
+            parameters = simulation_parameters, phase="training")
         # Perform simulation training and evaluation stages
-        model, loss_train_list, loss_valid_list = train(training_parameters = training_parameters,
+        model, loss_train_list, loss_valid_list = train(training_parameters = simulation_parameters,
             model_name= simulation_filename, saving_path=saving_path)
         # Save model weights
         if commands["SAVE_MODEL"]:
@@ -172,8 +174,9 @@ if __name__ == "__main__":
         # Load datasets for evaluation
         if not (commands["CREATE_DATA"] or commands["LOAD_DATA"]):
             test_dataset, generic_test_dataset, samples_model = load_datasets(
-                model_type, scenario, mode, samples_size, M, N, T, SNR, eta,\
-                geo_noise_var, datasets_path=datasets_path)
+                system_model_params = system_model_params, model_type = model_type,\
+                samples_size = int(train_test_ratio * samples_size),\
+                datasets_path=datasets_path)
         # Generate DataLoader objects
         model_test_dataset = torch.utils.data.DataLoader(test_dataset,\
             batch_size=1, shuffle=False, drop_last=False)
@@ -182,13 +185,13 @@ if __name__ == "__main__":
         # Load pre-trained model 
         if not commands["TRAIN_MODEL"]:
             # Define an evaluation parameters instance
-            evaluation_params = TrainingParams()\
-                .set_model(system_model=samples_model)\
+            simulation_parameters = TrainingParams()\
+                .set_model(system_model=samples_model, tau=tau)\
                 .load_model(loading_path=saving_path / Path(simulation_filename))
-            model = evaluation_params.model
+            model = simulation_parameters.model
         # print simulation summary details
-        simulation_summary(model_type=model_type, M=M, N=N, T=T, SNR=SNR, scenario=scenario,\
-            mode=mode, eta=eta, geo_noise_var=geo_noise_var, phase="evaluation")
+        simulation_summary(system_model_params = system_model_params, model_type=model_type,\
+            phase="evaluation", parameters=simulation_parameters)
         # Evaluate SubspaceNet + Root-MUSIC algorithm performnces
         model_test_loss = evaluate_model(model=model, dataset=model_test_dataset,
             criterion=criterion, plot_spec= PLOT_SPECTRUM, figures=figures,
