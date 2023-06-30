@@ -53,11 +53,11 @@ if __name__ == "__main__":
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
     # Operations commands
-    commands = {"SAVE_TO_FILE"  : False,    # Saving results to file or present them over CMD
+    commands = {"SAVE_TO_FILE"  : True,    # Saving results to file or present them over CMD
                 "CREATE_DATA"   : True,    # Creating new data
                 "LOAD_DATA"     : True,     # Loading data from dataset 
                 "LOAD_MODEL"    : False,    # Load specific model
-                "TRAIN_MODEL"   : False,    # Applying training operation
+                "TRAIN_MODEL"   : True,    # Applying training operation
                 "SAVE_MODEL"    : False,    # Saving tuned model
                 "EVALUATE_MODE" : True}     # Evaluating desired algorithms
     # Saving simulation scores to external file
