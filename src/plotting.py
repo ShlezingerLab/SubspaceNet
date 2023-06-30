@@ -16,10 +16,16 @@ like and RootMUSIC, MUSIC, and also beam patterns of MVDR.
 Functions:
 ----------
 
-plot_spectrum: Wrapper spectrum plotter based on the algorithm.
-plot_music_spectrum: Plot the MUSIC spectrum.
-plot_root_music_spectrum: Plot the Root-MUSIC spectrum.
-plot_mvdr_spectrum: Plot the MVDR spectrum.
+plot_spectrum(predictions: np.ndarray, true_DOA: np.ndarray, system_model=None,
+    spectrum: np.ndarray =None, roots: np.ndarray =None, algorithm:str ="music",
+    figures:dict = None): Wrapper spectrum plotter based on the algorithm.
+plot_music_spectrum(system_model, figures: dict, spectrum: np.ndarray, algorithm: str):
+    Plot the MUSIC spectrum.
+plot_root_music_spectrum(roots: np.ndarray, predictions: np.ndarray,
+    true_DOA: np.ndarray, algorithm: str): Plot the Root-MUSIC spectrum.
+plot_mvdr_spectrum(system_model, figures: dict, spectrum: np.ndarray,
+    true_DOA: np.ndarray, algorithm: str): Plot the MVDR spectrum.
+initialize_figures(void): Generates template dictionary containing figure objects for plotting multiple spectrums.
 
 
 """
@@ -166,3 +172,15 @@ def plot_root_music_spectrum(roots: np.ndarray, predictions: np.ndarray,
     ax.set_xlabel("Angels [deg]")
     ax.set_ylabel("Amplitude")
     plt.savefig("data/spectrums/{}_spectrum.pdf".format(algorithm), bbox_inches='tight')
+    
+def initialize_figures():
+  """Generates template dictionary containing figure objects for plotting multiple spectrums.
+
+  Returns:
+      (dict): The figures dictionary
+  """  
+  figures = {"music"  : {"fig" : None, "ax" : None, "norm factor" : None},
+            "r-music": {"fig" : None, "ax" : None},
+            "esprit" : {"fig" : None, "ax" : None},
+            "mvdr"   : {"fig" : None, "ax" : None, "norm factor" : None}}
+  return figures

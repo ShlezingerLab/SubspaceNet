@@ -18,15 +18,12 @@ In addition,
 
 Functions:
 ----------
-evaluate_model: Evaluate the DNN model on a given dataset.
+evaluate_dnn_model: Evaluate the DNN model on a given dataset.
 evaluate_augmented_model: Evaluate an augmented model that combines a SubspaceNet model.
 evaluate_model_based: Evaluate different model-based algorithms on a given dataset.
 add_random_predictions: Add random predictions if the number of predictions
     is less than the number of sources.
-plot_spectrum: Wrapper spectrum plotter based on the algorithm.
-plot_music_spectrum: Plot the MUSIC spectrum.
-plot_root_music_spectrum: Plot the Root-MUSIC spectrum.
-plot_mvdr_spectrum: Plot the MVDR spectrum.
+evaluate: Wrapper function for model and algorithm evaluations.
 
 
 """
@@ -41,7 +38,7 @@ from src.utils import *
 from src.models import SubspaceNet
 from src.plotting import plot_spectrum
 
-def evaluate_model(model, dataset: list, criterion: nn.Module,
+def evaluate_dnn_model(model, dataset: list, criterion: nn.Module,
         plot_spec: bool = False, figures: dict = None, model_type: str="SubspaceNet"):
     """
     Evaluate the DNN model on a given dataset.
@@ -92,12 +89,12 @@ def evaluate_model(model, dataset: list, criterion: nn.Module,
                     # If evaluation performed over testset, loss is RMSPE / MSPE 
                     DOA_predictions = model_output
                 else:
-                    raise Exception(f"evaluate_model: Loss criterion is not defined for {model_type} model")
+                    raise Exception(f"evaluate_dnn_model: Loss criterion is not defined for {model_type} model")
             elif model_type.startswith("SubspaceNet"):
                 # Default - SubSpaceNet
                 DOA_predictions = model_output[0]
             else:
-                raise Exception(f"evaluate_model: Model type {model_type} is not defined")
+                raise Exception(f"evaluate_dnn_model: Model type {model_type} is not defined")
             # Compute prediction loss
             if model_type.startswith("DeepCNN") and isinstance(criterion, RMSPELoss):
                 eval_loss = criterion(DOA_predictions.float(), DOA.float())
@@ -292,3 +289,61 @@ def add_random_predictions(M: int, predictions: np.ndarray, algorithm: str):
         print(f"{algorithm}: cant estimate M sources")
         predictions = np.insert(predictions, 0, np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)
     return predictions
+
+def evaluate(
+    model: nn.Module,
+    model_type: str,
+    model_test_dataset: list,
+    generic_test_dataset: list,
+    criterion: nn.Module,
+    subspace_criterion,
+    system_model,
+    figures: dict,
+    plot_spec: bool = True,
+    augmented_methods: list = None,
+    subspace_methods: list = None
+):
+    """
+    Wrapper function for model and algorithm evaluations.
+
+    Parameters:
+        model (nn.Module): The DNN model.
+        model_type (str): Type of the model.
+        model_test_dataset (list): Test dataset for the model.
+        generic_test_dataset (list): Test dataset for generic subspace methods.
+        criterion (nn.Module): Loss criterion for (DNN) model evaluation.
+        subspace_criterion: Loss criterion for subspace method evaluation.
+        system_model: instance of SystemModel.
+        figures (dict): Dictionary to store figures.
+        plot_spec (bool, optional): Whether to plot spectrums. Defaults to True.
+        augmented_methods (list, optional): List of augmented methods for evaluation.
+            Defaults to None.
+        subspace_methods (list, optional): List of subspace methods for evaluation.
+            Defaults to None.
+
+    Returns:
+        None
+    """
+    # Set default methods for SubspaceNet augmentation
+    if not isinstance(augmented_methods, list) and model_type.startswith("SubspaceNet"):
+        augmented_methods = ["music", "mvdr", "esprit"]
+    # Set default model-based subspace methods 
+    if not isinstance(subspace_methods, list):  
+      subspace_methods = ["esprit", "music", "r-music", "mvdr", "sps-r-music",\
+        "sps-esprit", "sps-music", "bb-music"]
+    # Evaluate SubspaceNet + Root-MUSIC algorithm performances
+    model_test_loss = evaluate_dnn_model(model=model, dataset=model_test_dataset,
+        criterion=criterion, plot_spec= plot_spec, figures=figures, model_type = model_type)
+    print(f"{model_type} Test loss = {model_test_loss}")
+    # Evaluate SubspaceNet augmented methods
+    for algorithm in augmented_methods:
+        loss = evaluate_augmented_model(model=model, dataset=model_test_dataset,\
+            system_model=system_model, criterion = subspace_criterion, algorithm = algorithm,\
+            plot_spec= plot_spec, figures = figures)
+        print("augmented {} test loss = {}".format(algorithm, loss))
+    # Evaluate classical subspace methods
+    for algorithm in subspace_methods:
+        loss = evaluate_model_based(generic_test_dataset, system_model, 
+            criterion=subspace_criterion, plot_spec = plot_spec, algorithm = algorithm,\
+            figures = figures)
+        print("{} test loss = {}".format(algorithm.lower(), loss))

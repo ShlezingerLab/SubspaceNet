@@ -131,10 +131,10 @@ class Samples(SystemModel):
                 SV.append(A)
             samples = np.array(samples)
             SV = np.array(SV)
-            samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.T]
+            samples_time_domain = np.fft.ifft(samples.T, axis=1)[:, :self.params.T]
             return samples_time_domain, signal, SV, noise
         else:
-            raise Exception(f"Samples.samples_creation: signal type {self.signal_type} is not defined")
+            raise Exception(f"Samples.samples_creation: signal type {self.params.signal_type} is not defined")
 
     def noise_creation(self, noise_mean, noise_variance):
         """ Creates noise based on the specified mean and variance.
@@ -155,12 +155,12 @@ class Samples(SystemModel):
                 (np.random.randn(self.params.N, self.params.T)\
                 + 1j * np.random.randn(self.params.N, self.params.T)) + noise_mean
         # for Broadband signal_type Noise represented in the frequency domain
-        elif self.signal_type.startswith("Broadband"):
+        elif self.params.signal_type.startswith("Broadband"):
             noise = np.sqrt(noise_variance) * (np.sqrt(2) / 2) * (np.random.randn(self.params.N, len(self.time_axis["Broadband"]))\
                             + 1j * np.random.randn(self.params.N, len(self.time_axis["Broadband"]))) + noise_mean
             return np.fft.fft(noise)
         else:
-            raise Exception(f"Samples.noise_creation: signal type {self.signal_type} is not defined")
+            raise Exception(f"Samples.noise_creation: signal type {self.params.signal_type} is not defined")
 
     def signal_creation(self, signal_mean:float = 0, signal_variance:float = 1):
         """
@@ -196,7 +196,7 @@ class Samples(SystemModel):
                 return np.repeat(sig, self.params.M, axis = 0)
         
         # OFDM Broadband signal creation
-        elif self.signal_type.startswith("Broadband"):
+        elif self.params.signal_type.startswith("Broadband"):
             num_sub_carriers = self.max_freq["Broadband"]   # number of subcarriers per signal
             if self.params.signal_nature == "non-coherent":
                 # create M non-coherent signals
@@ -223,4 +223,4 @@ class Samples(SystemModel):
                 raise Exception(f"signal nature {self.params.signal_nature} is not defined")
                 
         else:
-            raise Exception(f"signal type {self.signal_type} is not defined")
+            raise Exception(f"signal type {self.params.signal_type} is not defined")

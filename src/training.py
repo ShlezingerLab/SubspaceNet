@@ -46,7 +46,7 @@ from src.utils import *
 from src.criterions import *
 from src.system_model import SystemModel, SystemModelParams
 from src.models import SubspaceNet, DeepCNN, DeepAugmentedMUSIC
-from src.evaluation import evaluate_model
+from src.evaluation import evaluate_dnn_model
 
 class TrainingParams(object):
   """
@@ -364,7 +364,7 @@ def train_model(training_params: TrainingParams, model_name: str, checkpoint_pat
         # Update schedular
         training_params.schedular.step()
         # Calculate evaluation loss
-        valid_loss = evaluate_model(model, training_params.valid_dataset,
+        valid_loss = evaluate_dnn_model(model, training_params.valid_dataset,
             training_params.criterion, model_type=training_params.model_type)
         loss_valid_list.append(valid_loss)
         # Report results
