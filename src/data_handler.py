@@ -264,23 +264,23 @@ def load_datasets(system_model_params:SystemModelParams, model_type: str,
             train_dataset = read_data(datasets_path / "train" / model_dataset_filename)
             datasets.append(train_dataset)
         except:
-            print("Training dataset doesn't exist")
+            raise Exception("load_datasets: Training dataset doesn't exist")
     # Load test dataset
     try:
         test_dataset = read_data(datasets_path / "test" / model_dataset_filename)
         datasets.append(test_dataset)
     except:
-        print("Test dataset doesn't exist")
+        raise Exception("load_datasets: Test dataset doesn't exist")
     # Load generic test dataset
     try:
         generic_test_dataset = read_data(datasets_path / "test" / generic_dataset_filename)
         datasets.append(generic_test_dataset)
     except:
-        print("Generic test dataset doesn't exist")
+        raise Exception("load_datasets: Generic test dataset doesn't exist")
     # Load samples models
     try:
         samples_model = read_data(datasets_path / "test" / samples_model_filename)
         datasets.append(samples_model)
     except:
-        print("Samples model dataset doesn't exist")
+        raise Exception("load_datasets: Samples model dataset doesn't exist")
     return datasets

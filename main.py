@@ -54,7 +54,7 @@ if __name__ == "__main__":
     dt_string_for_save = now.strftime("%d_%m_%Y_%H_%M")
     # Operations commands
     commands = {"SAVE_TO_FILE"  : False,    # Saving results to file or present them over CMD
-                "CREATE_DATA"   : False,    # Creating new data
+                "CREATE_DATA"   : True,    # Creating new data
                 "LOAD_DATA"     : True,     # Loading data from dataset 
                 "LOAD_MODEL"    : False,    # Load specific model
                 "TRAIN_MODEL"   : False,    # Applying training operation
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # Define samples size
     samples_size = 100      # Overall dateset size
     train_test_ratio = 1  # training and testing datasets ratio
-    
+    # Sets simulation filename
     simulation_filename = f"{model_type}_M={system_model_params.M}_"+\
         f"T={system_model_params.T}_SNR_{system_model_params.snr}_"+\
         f"tau={tau}_{system_model_params.signal_type}_"+\
