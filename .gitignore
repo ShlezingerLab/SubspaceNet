@@ -2,7 +2,6 @@
 *.pdf
 Figures/*.pdf
 __pycache__/*.pyc
-plotting.py
 plot_style.txt
 plotting
 Figures

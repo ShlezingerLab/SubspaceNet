@@ -24,6 +24,7 @@ This script includes the following Classes anf functions:
   and target values. It inherits from the nn.Module class and overrides the forward method to perform the loss computation.
 * RMSPE (function): A function that calculates the RMSPE value between the DOA predictions and target DOA values for numpy arrays.
 * MSPE (function): A function that calculates the MSPE value between the DOA predictions and target DOA values for numpy arrays.
+* set_criterions(function): Set the loss criteria based on the criterion name.
 
 """
 
@@ -236,6 +237,31 @@ def MSPE(doa_predictions: np.ndarray, doa: np.ndarray):
         rmspe_list.append(rmspe_val)
     # Choose minimal error from all permutations
     return np.min(rmspe_list)
+
+def set_criterions(criterion_name:str):
+    """
+    Set the loss criteria based on the criterion name.
+
+    Parameters:
+        criterion_name (str): Name of the criterion.
+
+    Returns:
+        criterion (nn.Module): Loss criterion for model evaluation.
+        subspace_criterion (Callable): Loss criterion for subspace method evaluation.
+
+    Raises:
+        Exception: If the criterion name is not defined.
+    """
+    if criterion_name.startswith("rmse"):
+        criterion = RMSPELoss()
+        subspace_criterion = RMSPE
+    elif criterion_name.startswith("mse"):
+        criterion = MSPELoss()
+        subspace_criterion = MSPE
+    else:
+        raise Exception(f"criterions.set_criterions: Criterion {criterion_name} is not defined")
+    print(f"Loss measure = {criterion_name}")
+    return criterion, subspace_criterion
 
 if __name__ == "__main__":
     prediction = torch.tensor([1, 2, 3])

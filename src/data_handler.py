@@ -1,28 +1,28 @@
 """Subspace-Net 
 Details
 ----------
-Name: data_handler.py
-Authors: D. H. Shmuel
-Created: 01/10/21
-Edited: 03/06/23
+    Name: data_handler.py
+    Authors: D. H. Shmuel
+    Created: 01/10/21
+    Edited: 03/06/23
 
 Purpose:
 --------
-This scripts handle the creation and processing of synthetic datasets
-based on specified parameters and model types.
-It includes functions for generating datasets, reading data from files,
-computing autocorrelation matrices, and creating covariance tensors.
+    This scripts handle the creation and processing of synthetic datasets
+    based on specified parameters and model types.
+    It includes functions for generating datasets, reading data from files,
+    computing autocorrelation matrices, and creating covariance tensors.
 
 Attributes:
 -----------
-Samples (from src.signal_creation): A class for creating samples used in dataset generation.
+    Samples (from src.signal_creation): A class for creating samples used in dataset generation.
 
-The script defines the following functions:
-* create_dataset: Generates a synthetic dataset based on the specified parameters and model type.
-* read_data: Reads data from a file specified by the given path.
-* autocorrelation_matrix: Computes the autocorrelation matrix for a given lag of the input samples.
-* create_autocorrelation_tensor: Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
-* create_cov_tensor: Creates a 3D tensor containing the real part, imaginary part, and phase component of the covariance matrix.
+    The script defines the following functions:
+    * create_dataset: Generates a synthetic dataset based on the specified parameters and model type.
+    * read_data: Reads data from a file specified by the given path.
+    * autocorrelation_matrix: Computes the autocorrelation matrix for a given lag of the input samples.
+    * create_autocorrelation_tensor: Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
+    * create_cov_tensor: Creates a 3D tensor containing the real part, imaginary part, and phase component of the covariance matrix.
 
 """
 
@@ -33,77 +33,63 @@ import itertools
 from tqdm import tqdm
 from src.signal_creation import Samples
 from pathlib import Path
+from src.system_model import SystemModelParams
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
-                    samples_size: float, tau: int, model_type: str,
-                    Save:bool=False, dataset_path: str= None,
-                    true_doa:list = None, SNR:float = 10, eta: float = 0,
-                    geo_noise_var: float = 0, phase:str = None):
-    """ Generates a synthetic dataset based on the specified parameters and model type.
+def create_dataset(system_model_params:SystemModelParams,
+    samples_size: float, tau: int, model_type: str, save_datasets:bool=False,
+    datasets_path: Path= None, true_doa:list = None, phase:str = None):
+    """
+    Generates a synthetic dataset based on the specified parameters and model type.
 
     Args:
     -----
-        scenario (str): "NarrowBand" or "BroadBand" signals.
-        mode (str): "coherent" or "non-coherent" nature of signals.
-        N (int): number of array sensors.
-        M (int): number of sources.
-        T (int): number of snapshots.
-        samples_size (int): dataset size.
-        tau (int): amount of lags for auto-correlation, relevant only for SubspaceNet model.
-        model_type (str): the model type.
-        Save (bool, optional): wether or not save dataset. Defaults to False.
-        dataset_path (str, optional): path for saving dataset. Defaults to None.
-        true_doa (list, optional): predefined angels. Defaults to None.
-        SNR (float, optional): SNR for samples creations. Defaults to 10.
-        eta (float, optional): sensors distance deviation from ideal array,
-                                relevant for array-mismatches scenarios. Defaults to 0.
-        geo_noise_var (float, optional): steering vector added noise,
-                                relevant for array-mismatches scenarios. Defaults to 0.
-        phase (str, optional): test or training phase for dataset,
-                                relevant only for CNN model. Defaults to None.
+        system_model_params (SystemModelParams): an instance of SystemModelParams
+        samples_size (float): The size of the dataset.
+        tau (int): The number of lags for auto-correlation (relevant only for SubspaceNet model).
+        model_type (str): The type of the model.
+        save_datasets (bool, optional): Specifies whether to save the dataset. Defaults to False.
+        datasets_path (Path, optional): The path for saving the dataset. Defaults to None.
+        true_doa (list, optional): Predefined angles. Defaults to None.
+        phase (str, optional): The phase of the dataset (test or training phase for CNN model). Defaults to None.
 
     Returns:
     --------
-        tuple: the desired dataset comprised from (X-samples, Y-labels)
-    """ 
+        tuple: A tuple containing the desired dataset comprised of (X-samples, Y-labels).
+
+    """
     generic_dataset = []
     model_dataset = []
-    sampels_model = Samples(scenario= scenario, N= N, M= M,
-                    observations=T, freq_values=[0, 500])
-
+    samples_model = Samples(system_model_params)
     # Generate permutations for CNN model training dataset
     if model_type.startswith("DeepCNN") and phase.startswith("train"):
         doa_permutations = []
         angles_grid = np.linspace(start=-90, stop=90, num=361)
-        for comb in itertools.combinations(angles_grid, M):
+        for comb in itertools.combinations(angles_grid, system_model_params.M):
             doa_permutations.append(list(comb))
     
     if model_type.startswith("DeepCNN") and phase.startswith("train"):
-        for snr_addition in [0]:
-            for i, doa in tqdm(enumerate(doa_permutations)):
-                # Samples model creation
-                sampels_model.set_doa(doa)             
-                # Observations matrix creation
-                X = torch.tensor(sampels_model.samples_creation(mode = mode, N_mean= 0,
-                                N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR + snr_addition, eta = eta,
-                                geo_noise_var = geo_noise_var)[0], dtype=torch.complex64)
-                X_model = create_cov_tensor(X)
-                # Ground-truth creation  
-                Y = torch.zeros_like(torch.tensor(angles_grid))
-                for angle in doa:
-                    Y[list(angles_grid).index(angle)] = 1
-                model_dataset.append((X_model,Y))
-                generic_dataset.append((X,Y))
+        for i, doa in tqdm(enumerate(doa_permutations)):
+            # Samples model creation
+            samples_model.set_doa(doa)             
+            # Observations matrix creation
+            X = torch.tensor(samples_model.samples_creation(noise_mean= 0,
+                noise_variance= 1, signal_mean= 0, signal_variance= 1)[0], dtype=torch.complex64)
+            X_model = create_cov_tensor(X)
+            # Ground-truth creation  
+            Y = torch.zeros_like(torch.tensor(angles_grid))
+            for angle in doa:
+                Y[list(angles_grid).index(angle)] = 1
+            model_dataset.append((X_model, Y))
+            generic_dataset.append((X,Y))
     else:
         for i in tqdm(range(samples_size)):
             # Samples model creation
-            sampels_model.set_doa(true_doa)
+            samples_model.set_doa(true_doa)
             # Observations matrix creation
-            X = torch.tensor(sampels_model.samples_creation(mode = mode, N_mean= 0,
-                            N_Var= 1, S_mean= 0, S_Var= 1, SNR= SNR, eta = eta,
-                            geo_noise_var = geo_noise_var)[0], dtype=torch.complex64) 
+            X = torch.tensor(samples_model.samples_creation(noise_mean= 0,
+                noise_variance= 1, signal_mean= 0, signal_variance= 1)[0], dtype=torch.complex64) 
             if model_type.startswith("SubspaceNet"):
                 # Generate auto-correlation tensor                                   
                 X_model = create_autocorrelation_tensor(X, tau).to(torch.float)
@@ -113,16 +99,30 @@ def create_dataset(scenario: str, mode: str, N: int, M: int, T: int,
             else:
                 X_model = X
             # Ground-truth creation
-            Y = torch.tensor(sampels_model.doa, dtype=torch.float64)
+            Y = torch.tensor(samples_model.doa, dtype=torch.float64)
             generic_dataset.append((X,Y))                                                        
             model_dataset.append((X_model,Y))                                                        
     
-    if Save:
-        torch.save(obj= model_dataset, f=dataset_path + f"/{model_type}_DataSet_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
-        torch.save(obj= generic_dataset, f=dataset_path + f"/Generic_DataSet_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
-        torch.save(obj= sampels_model, f=dataset_path + f"/Sys_Model_{scenario}_{mode}_{samples_size}_M={M}_N={N}_T={T}_SNR={SNR}_eta={eta}_geo_noise_var{geo_noise_var}" + '.h5')
+    if save_datasets:
+        model_dataset_filename = f"{model_type}_DataSet_{system_model_params.signal_type}_"+\
+            f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+            f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+            f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+        generic_dataset_filename = f"Generic_DataSet_{system_model_params.signal_type}_"+\
+            f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+            f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+            f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+        samples_model_filename = f"samples_model_{system_model_params.signal_type}_"+\
+            f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+            f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+            f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+
+        torch.save(obj= model_dataset, f=datasets_path / phase / model_dataset_filename)
+        torch.save(obj= generic_dataset, f=datasets_path / phase / generic_dataset_filename)
+        if phase.startswith("test"):
+            torch.save(obj= samples_model, f=datasets_path / phase/ samples_model_filename)
     
-    return model_dataset, generic_dataset, sampels_model
+    return model_dataset, generic_dataset, samples_model
 
 # def read_data(Data_path: str) -> torch.Tensor:
 def read_data(path: str):
@@ -223,3 +223,64 @@ def create_cov_tensor(X: torch.Tensor):
     Rx = torch.cov(X)
     Rx_tensor = torch.stack((torch.real(Rx),torch.imag(Rx), torch.angle(Rx)), 2)
     return Rx_tensor
+
+def load_datasets(system_model_params:SystemModelParams, model_type: str,
+    samples_size: float, datasets_path: Path, is_training: bool=False):
+    """
+    Load different datasets based on the specified parameters and phase.
+
+    Args:
+    -----
+        system_model_params (SystemModelParams): an instance of SystemModelParams.
+        model_type (str): The type of the model.
+        signal_type (str): The signal_type of the dataset.
+        datasets_path (Path): The path to the datasets.
+        is_training (bool): Specifies whether to load the training dataset.
+
+    Returns:
+    --------
+        List: A list containing the loaded datasets.
+
+    """
+    datasets = []
+    # Generate datasets filenames
+    model_dataset_filename = f"{model_type}_DataSet_{system_model_params.signal_type}_"+\
+        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+    generic_dataset_filename = f"Generic_DataSet_{system_model_params.signal_type}_"+\
+        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+    samples_model_filename = f"samples_model_{system_model_params.signal_type}_"+\
+        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+
+    # Whether to load the training dataset 
+    if is_training:
+        # Load training dataset
+        try:
+            train_dataset = read_data(datasets_path / "train" / model_dataset_filename)
+            datasets.append(train_dataset)
+        except:
+            print("Training dataset doesn't exist")
+    # Load test dataset
+    try:
+        test_dataset = read_data(datasets_path / "test" / model_dataset_filename)
+        datasets.append(test_dataset)
+    except:
+        print("Test dataset doesn't exist")
+    # Load generic test dataset
+    try:
+        generic_test_dataset = read_data(datasets_path / "test" / generic_dataset_filename)
+        datasets.append(generic_test_dataset)
+    except:
+        print("Generic test dataset doesn't exist")
+    # Load samples models
+    try:
+        samples_model = read_data(datasets_path / "test" / samples_model_filename)
+        datasets.append(samples_model)
+    except:
+        print("Samples model dataset doesn't exist")
+    return datasets
