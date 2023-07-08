@@ -80,10 +80,10 @@ class Samples(SystemModel):
         
         if doa == None:
             # Generate angels with gap greater than 0.2 rad (nominal case)
-            self.doa = np.array(create_doa_with_gap(gap = 15)) * D2R
+            self.doa = np.array(create_doa_with_gap(gap = 0)) * D2R
         else:
             # Generate  
-            self.doa = np.array(doa)                             
+            self.doa = np.array(doa) * D2R
         
     def samples_creation(self, noise_mean:float=0, noise_variance:float= 1,
                          signal_mean:float= 0, signal_variance:float= 1):
