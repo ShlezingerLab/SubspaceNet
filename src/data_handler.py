@@ -22,7 +22,9 @@ Attributes:
     * read_data: Reads data from a file specified by the given path.
     * autocorrelation_matrix: Computes the autocorrelation matrix for a given lag of the input samples.
     * create_autocorrelation_tensor: Returns a tensor containing all the autocorrelation matrices for lags 0 to tau.
-    * create_cov_tensor: Creates a 3D tensor containing the real part, imaginary part, and phase component of the covariance matrix.
+    * create_cov_tensor: Creates a 3D tensor containing the real part,
+        imaginary part, and phase component of the covariance matrix.
+    * set_dataset_filename: Returns the generic suffix of the datasets filename.
 
 """
 
@@ -225,7 +227,7 @@ def create_cov_tensor(X: torch.Tensor):
     return Rx_tensor
 
 def load_datasets(system_model_params:SystemModelParams, model_type: str,
-    samples_size: float, datasets_path: Path, is_training: bool=False):
+    samples_size: float, datasets_path: Path, train_test_ratio:float, is_training: bool=False):
     """
     Load different datasets based on the specified parameters and phase.
 
@@ -233,8 +235,9 @@ def load_datasets(system_model_params:SystemModelParams, model_type: str,
     -----
         system_model_params (SystemModelParams): an instance of SystemModelParams.
         model_type (str): The type of the model.
-        signal_type (str): The signal_type of the dataset.
+        samples_size (float): The size of the overall dataset.
         datasets_path (Path): The path to the datasets.
+        train_test_ratio (float): The ration between train and test datasets.
         is_training (bool): Specifies whether to load the training dataset.
 
     Returns:
@@ -243,25 +246,19 @@ def load_datasets(system_model_params:SystemModelParams, model_type: str,
 
     """
     datasets = []
+    # Define test set size
+    test_samples_size = int(train_test_ratio * samples_size)
     # Generate datasets filenames
-    model_dataset_filename = f"{model_type}_DataSet_{system_model_params.signal_type}_"+\
-        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
-        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
-        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
-    generic_dataset_filename = f"Generic_DataSet_{system_model_params.signal_type}_"+\
-        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
-        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
-        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
-    samples_model_filename = f"samples_model_{system_model_params.signal_type}_"+\
-        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
-        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
-        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+    model_dataset_filename = f"{model_type}_DataSet" + set_dataset_filename(system_model_params, test_samples_size)
+    generic_dataset_filename = f"Generic_DataSet" + set_dataset_filename(system_model_params, test_samples_size)
+    samples_model_filename = f"samples_model" + set_dataset_filename(system_model_params, test_samples_size)
 
     # Whether to load the training dataset 
     if is_training:
         # Load training dataset
         try:
-            train_dataset = read_data(datasets_path / "train" / model_dataset_filename)
+            model_trainingset_filename = f"{model_type}_DataSet" + set_dataset_filename(system_model_params, samples_size)
+            train_dataset = read_data(datasets_path / "train" / model_trainingset_filename)
             datasets.append(train_dataset)
         except:
             raise Exception("load_datasets: Training dataset doesn't exist")
@@ -284,3 +281,21 @@ def load_datasets(system_model_params:SystemModelParams, model_type: str,
     except:
         raise Exception("load_datasets: Samples model dataset doesn't exist")
     return datasets
+
+def set_dataset_filename(system_model_params:SystemModelParams, samples_size: float):
+    """Returns the generic suffix of the datasets filename.
+
+    Args:
+    -----
+        system_model_params (SystemModelParams): an instance of SystemModelParams.
+        samples_size (float): The size of the overall dataset.
+
+    Returns:
+    --------
+        str: Suffix dataset filename
+    """    
+    suffix_filename =f"_{system_model_params.signal_type}_"+\
+        f"{system_model_params.signal_nature}_{samples_size}_M={system_model_params.M}_"+\
+        f"N={system_model_params.N}_T={system_model_params.T}_SNR={system_model_params.snr}_"+\
+        f"eta={system_model_params.eta}_sv_noise_var{system_model_params.sv_noise_var}" + '.h5'
+    return suffix_filename
