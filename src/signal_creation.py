@@ -124,16 +124,6 @@ class Samples(SystemModel):
         if self.params.signal_type.startswith("NarrowBand"):
             A = np.array([self.steering_vec(theta) for theta in self.doa]).T
             samples = (A @ signal) + noise
-            if self.params.sparse_form.startswith("MRA-4"):
-                for miss in [2, 3, 5, 7]:
-                    samples[:,][miss] = 0
-            elif self.params.sparse_form.startswith("MRA-4-complementary"):
-                for miss in [0, 1, 4, 6]:
-                    samples[:,][miss] = 0
-            else:
-                raise Exception(
-                    f"Samples.samples_creation: sparse array formation {self.params.sparse_form} is not defined"
-                )
             return samples, signal, A, noise
         # Generate Broadband samples
         elif self.params.signal_type.startswith("Broadband"):

@@ -50,7 +50,6 @@ class SystemModelParams:
         self.snr = 10  # Signal-to-noise ratio
         self.eta = 0  # Sensor location deviation
         self.sv_noise_var = 0  # Steering vector added noise variance
-        self.sparse_form = "None"
 
     def set_num_sources(self, M: int):
         """
@@ -160,18 +159,6 @@ class SystemModelParams:
         self.sv_noise_var = sv_noise_var
         return self
 
-    def set_sparse_form(self, sparse_form: str):
-        """
-        Set the sparse formation of the sensors array.
-
-        Parameters:
-            sparse_form (str): the array sparse formation.
-
-        Returns:
-            SystemModelParams: The SystemModelParams object.
-        """
-        self.sparse_form = sparse_form
-        return self
 
 
 class SystemModel(object):

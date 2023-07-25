@@ -43,7 +43,7 @@ plt.close("all")
 if __name__ == "__main__":
     # Initialize paths
     external_data_path = Path.cwd() / "data"
-    scenario_data_path = "LowSNR"
+    scenario_data_path = "diff_esprit"
     datasets_path = external_data_path / "datasets" / scenario_data_path
     simulations_path = external_data_path / "simulations"
     saving_path = external_data_path / "weights"
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # Operations commands
     commands = {
         "SAVE_TO_FILE": True,  # Saving results to file or present them over CMD
-        "CREATE_DATA": False,  # Creating new dataset
+        "CREATE_DATA": True,  # Creating new dataset
         "LOAD_DATA": False,  # Loading data from exist dataset
         "LOAD_MODEL": False,  # Load specific model for training
         "TRAIN_MODEL": False,  # Applying training operation
@@ -71,14 +71,13 @@ if __name__ == "__main__":
     system_model_params = (
         SystemModelParams()
         .set_num_sensors(8)
-        .set_num_sources(4)
+        .set_num_sources(5)
         .set_num_observations(100)
         .set_snr(10)
         .set_signal_type("NarrowBand")
-        .set_signal_nature("non-coherent")
+        .set_signal_nature("coherent")
         .set_sensors_dev(eta=0)
         .set_sv_noise(0)
-        .set_sparse_form("MRA-4-complementary")
     )
     # Generate model configuration
     model_config = (
@@ -89,8 +88,8 @@ if __name__ == "__main__":
         .set_model(system_model_params)
     )
     # Define samples size
-    samples_size = 50000  # Overall dateset size
-    train_test_ratio = 0.05  # training and testing datasets ratio
+    samples_size = 100  # Overall dateset size
+    train_test_ratio = 1  # training and testing datasets ratio
     # Sets simulation filename
     simulation_filename = get_simulation_filename(
         system_model_params=system_model_params, model_config=model_config

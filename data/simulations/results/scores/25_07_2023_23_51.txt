@@ -1,0 +1,33 @@
+------------------------------------
+---------- New Simulation ----------
+------------------------------------
+date and time = 25/07/2023 23:51:24
+Creating Data...
+Loss measure = rmse
+
+--- New Simulation ---
+
+Description: Simulation of SubspaceNet, evaluation stage
+System model parameters:
+Number of sources = 5
+Number of sensors = 8
+signal_type = NarrowBand
+Observations = 100
+SNR = 10, coherent sources
+Spacing deviation (eta) = 0
+Geometry noise variance = 0
+Simulation parameters:
+Model: SubspaceNet
+SubspaceNet: tau = 8
+SubspaceNet: differentiable subspace method  = esprit
+SubspaceNet Test loss = 0.028350365813070183
+augmented music test loss = 0.23930766154944222
+augmented esprit test loss = 0.028350353937579623
+augmented r-music test loss = 0.16374712281944856
+esprit test loss = 0.3598101494801098
+music test loss = 0.3684578895548193
+r-music test loss = 0.3692450954938209
+sps-r-music test loss = 0.9077152439789857
+sps-esprit test loss = 0.3480853912619648
+sps-music test loss = 0.4196366743532813
+end
