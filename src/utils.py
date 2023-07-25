@@ -27,9 +27,10 @@ import random
 import scipy
 
 # Constants
-R2D = 180 / np.pi 
-D2R = 1 / R2D 
+R2D = 180 / np.pi
+D2R = 1 / R2D
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 # Functions
 # def sum_of_diag(matrix: np.ndarray) -> list:
@@ -54,11 +55,17 @@ def sum_of_diag(matrix: np.ndarray):
 
     """
     diag_sum = []
-    diag_index = np.linspace(-matrix.shape[0] + 1, matrix.shape[0] + 1,
-                    2 * matrix.shape[0] - 1, endpoint = False, dtype = int)
+    diag_index = np.linspace(
+        -matrix.shape[0] + 1,
+        matrix.shape[0] + 1,
+        2 * matrix.shape[0] - 1,
+        endpoint=False,
+        dtype=int,
+    )
     for idx in diag_index:
         diag_sum.append(np.sum(matrix.diagonal(idx)))
     return diag_sum
+
 
 def sum_of_diags_torch(matrix: torch.Tensor):
     """Calculates the sum of diagonals in a square matrix.
@@ -80,12 +87,14 @@ def sum_of_diags_torch(matrix: torch.Tensor):
         >>> sum_of_diag(matrix)
             torch.tensor([7, 12, 15, 8, 3])
     """
-    diag_sum =[]
-    diag_index = torch.linspace(-matrix.shape[0] + 1,\
-                    matrix.shape[0] - 1, 2 * matrix.shape[0] - 1, dtype = int)
+    diag_sum = []
+    diag_index = torch.linspace(
+        -matrix.shape[0] + 1, matrix.shape[0] - 1, 2 * matrix.shape[0] - 1, dtype=int
+    )
     for idx in diag_index:
         diag_sum.append(torch.sum(torch.diagonal(matrix, idx)))
-    return torch.stack(diag_sum, dim = 0)
+    return torch.stack(diag_sum, dim=0)
+
 
 # def find_roots(coefficients: list) -> np.ndarray:
 def find_roots(coefficients: list):
@@ -107,10 +116,14 @@ def find_roots(coefficients: list):
 
     """
     coefficients = np.array(coefficients)
-    A = np.diag(np.ones((len(coefficients)-2,), coefficients.dtype), -1)
-    A[0,:] = -coefficients[1:] / coefficients[0]
+    A = np.diag(np.ones((len(coefficients) - 2,), coefficients.dtype), -1)
+    if np.abs(coefficients[0]) == 0:
+        A[0, :] = -coefficients[1:] / (coefficients[0] + 1e-9)
+    else:
+        A[0, :] = -coefficients[1:] / coefficients[0]
     roots = np.array(np.linalg.eigvals(A))
     return roots
+
 
 def find_roots_torch(coefficients: torch.Tensor):
     """Finds the roots of a polynomial defined by its coefficients.
@@ -131,12 +144,12 @@ def find_roots_torch(coefficients: torch.Tensor):
         tensor([3., 2.])
 
     """
-    A = torch.diag(torch.ones(len(coefficients)-2,\
-                    dtype=coefficients.dtype), -1)
-    A[0,:] = -coefficients[1:] / coefficients[0]
+    A = torch.diag(torch.ones(len(coefficients) - 2, dtype=coefficients.dtype), -1)
+    A[0, :] = -coefficients[1:] / coefficients[0]
     roots = torch.linalg.eigvals(A)
     return roots
-    
+
+
 def set_unified_seed(seed: int = 42):
     """
     Sets the seed value for random number generators in Python libraries.
@@ -157,6 +170,7 @@ def set_unified_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
 
 # def get_k_angles(grid_size: float, k: int, prediction: torch.Tensor) -> torch.Tensor:
 def get_k_angles(grid_size: float, k: int, prediction: torch.Tensor):
@@ -187,7 +201,6 @@ def get_k_angles(grid_size: float, k: int, prediction: torch.Tensor):
     return doa_prediction
 
 
-
 # def get_k_peaks(grid_size, k: int, prediction) -> torch.Tensor:
 def get_k_peaks(grid_size: int, k: int, prediction: torch.Tensor):
     """
@@ -213,18 +226,26 @@ def get_k_peaks(grid_size: int, k: int, prediction: torch.Tensor):
 
     """
     angels_grid = torch.linspace(-90, 90, grid_size)
-    peaks, peaks_data = scipy.signal.find_peaks(prediction.detach().numpy().flatten(),\
-                            prominence  = 0.05, height = 0.01)
-    peaks = peaks[np.argsort(peaks_data['peak_heights'])[::-1]]
+    peaks, peaks_data = scipy.signal.find_peaks(
+        prediction.detach().numpy().flatten(), prominence=0.05, height=0.01
+    )
+    peaks = peaks[np.argsort(peaks_data["peak_heights"])[::-1]]
     doa_prediction = angels_grid[peaks]
-    while(doa_prediction.shape[0] < k):
-        doa_prediction = torch.cat((doa_prediction, torch.Tensor(np.round(np.random.rand(1) *  180 ,decimals = 2) - 90.00)), 0)
+    while doa_prediction.shape[0] < k:
+        doa_prediction = torch.cat(
+            (
+                doa_prediction,
+                torch.Tensor(np.round(np.random.rand(1) * 180, decimals=2) - 90.00),
+            ),
+            0,
+        )
 
     return doa_prediction[:k]
 
+
 # def gram_diagonal_overload(Kx: torch.Tensor, eps: float) -> torch.Tensor:
 def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
-    '''Multiply a matrix Kx with its Hermitian conjecture (gram matrix),
+    """Multiply a matrix Kx with its Hermitian conjecture (gram matrix),
         and adds eps to the diagonal values of the matrix,
         ensuring a Hermitian and PSD (Positive Semi-Definite) matrix.
 
@@ -239,7 +260,7 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
     --------
         torch.Tensor: Hermitian and PSD matrix with shape [BS, N, N].
 
-    '''
+    """
     # Insuring Tensor input
     if not isinstance(Kx, torch.Tensor):
         Kx = torch.tensor(Kx)
@@ -254,7 +275,7 @@ def gram_diagonal_overload(Kx: torch.Tensor, eps: float, batch_size: int):
         eps_addition = (eps * torch.diag(torch.ones(Kx_garm.shape[0]))).to(device)
         Rz = Kx_garm + eps_addition
         Kx_list.append(Rz)
-    Kx_Out = torch.stack(Kx_list, dim = 0)
+    Kx_Out = torch.stack(Kx_list, dim=0)
     return Kx_Out
 
 
@@ -262,20 +283,20 @@ if __name__ == "__main__":
     # sum_of_diag example
     matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     sum_of_diag(matrix)
-    
+
     matrix = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     sum_of_diags_torch(matrix)
-    
+
     # find_roots example
     coefficients = [1, -5, 6]
     find_roots(coefficients)
-    
+
     # get_k_angles example
     grid_size = 6
     k = 3
     prediction = torch.tensor([0.1, 0.3, 0.5, 0.2, 0.4, 0.6])
     get_k_angles(grid_size, k, prediction)
-    
+
     # get_k_peaks example
     grid_size = 6
     k = 3
