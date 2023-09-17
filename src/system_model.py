@@ -233,7 +233,7 @@ class SystemModel(object):
         """create an array of sensors locations"""
         self.array = np.linspace(0, self.params.N, self.params.N, endpoint=False)
 
-    def steering_vec(self, theta: np.ndarray, f: float = 1, array_form="ULA"):
+    def  steering_vec(self, theta: np.ndarray, f: float = 1, array_form="ULA", nominal = False):
         """Computes the steering vector based on the specified parameters.
 
         Args:
@@ -241,23 +241,28 @@ class SystemModel(object):
             theta (np.ndarray): Array of angles.
             f (float, optional): Frequency. Defaults to 1.
             array_form (str, optional): Array form. Defaults to "ULA".
+            nominal (bool): flag for creating sv without array mismatches. 
 
         Returns:
         --------
             np.ndarray: Computed steering vector.
 
         """
-        sv_noise_var = self.params.sv_noise_var
         f_sv = {"NarrowBand": 1, "Broadband": f}
         if array_form.startswith("ULA"):
             # define uniform deviation in spacing (for each sensor)
-            mis_distance = np.random.uniform(
-                low=-1 * self.params.eta, high=self.params.eta, size=self.params.N
-            )
-            # define noise added to steering vector
-            mis_geometry_noise = np.sqrt(self.params.sv_noise_var) * (
-                np.random.randn(self.params.N)
-            )
+            if not nominal:
+                mis_distance = np.random.uniform(
+                    low=-1 * self.params.eta, high=self.params.eta, size=self.params.N
+                )
+                # define noise added to steering vector
+                mis_geometry_noise = np.sqrt(self.params.sv_noise_var) * (
+                    np.random.randn(self.params.N)
+                )
+            # If calculation is applied through method (array mismatches are not known).
+            else:
+                mis_distance, mis_geometry_noise = 0, 0
+            
             return (
                 np.exp(
                     -2

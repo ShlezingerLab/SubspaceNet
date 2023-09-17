@@ -268,7 +268,7 @@ class MUSIC(SubspaceMethod):
         # Run over all angels in grid
         for angle in self._angels:
             # Calculate the steered vector to angle
-            a = self.system_model.steering_vec(theta=angle, f=f, array_form=array_form)[
+            a = self.system_model.steering_vec(theta=angle, f=f, array_form=array_form, nominal = True)[
                 : Un.shape[0]
             ]
             # Calculate the core equation element
@@ -640,8 +640,8 @@ class MVDR(MUSIC):
         for angle in self._angels:
             # Calculate the steering vector
             a = self.system_model.steering_vec(
-                theta=angle, f=f, array_form="ULA"
-            ).reshape((self.system_model.params.N, 1))
+                theta=angle, f=f, array_form="ULA",
+                nominal=True).reshape((self.system_model.params.N, 1))
             # Adaptive calculation of optimal_weights
             optimal_weights = (inv_covariance @ a) / (np.conj(a).T @ inv_covariance @ a)
             # Calculate beamformer gain at specific angle
