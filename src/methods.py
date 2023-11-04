@@ -50,7 +50,6 @@ Methods:
 # Imports
 import numpy as np
 import scipy
-import torch
 from src.models import SubspaceNet
 from src.system_model import SystemModel
 from src.utils import sum_of_diag, find_roots, R2D
@@ -244,7 +243,7 @@ class MUSIC(SubspaceMethod):
         """
         super().__init__(system_model)
         # angle axis for representation of the MUSIC spectrum
-        self._angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 360, endpoint=False)
+        self._angels = np.linspace(-1 * np.pi / 2, np.pi / 2, 18000, endpoint=False)
 
     def spectrum_calculation(
         self, Un: np.ndarray, f: float = 1, array_form: str = "ULA"
