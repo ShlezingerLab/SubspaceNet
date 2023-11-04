@@ -492,6 +492,7 @@ def simulation_summary(
         signal_type (str): The signal_type of the signals.
         mode (str): The nature of the sources.
         eta (float): The spacing deviation.
+        bias (float): Value of bias deviation from nominal spacing.
         geo_noise_var (float): The geometry noise variance.
         parameters (TrainingParams): instance of the training parameters object
         phase (str, optional): The phase of the simulation. Defaults to "training", optional: "evaluation".
@@ -509,6 +510,7 @@ def simulation_summary(
         f"SNR = {system_model_params.snr}, {system_model_params.signal_nature} sources"
     )
     print(f"Spacing deviation (eta) = {system_model_params.eta}")
+    print(f"Bias spacing deviation (eta) = {system_model_params.bias}")
     print(f"Geometry noise variance = {system_model_params.sv_noise_var}")
     print("Simulation parameters:")
     print(f"Model: {model_type}")
@@ -535,5 +537,6 @@ def get_simulation_filename(
         + f"tau={model_config.tau}_{system_model_params.signal_type}_"
         + f"diff_method={model_config.diff_method}_"
         + f"{system_model_params.signal_nature}_eta={system_model_params.eta}_"
+        + f"bias={system_model_params.bias}_"
         + f"sv_noise={system_model_params.sv_noise_var}"
     )

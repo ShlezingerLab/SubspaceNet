@@ -43,10 +43,17 @@ plt.close("all")
 if __name__ == "__main__":
     # Initialize paths
     external_data_path = Path.cwd() / "data"
-    scenario_data_path = "diff_esprit"
+    scenario_data_path = "uniform_bias_spacing"
     datasets_path = external_data_path / "datasets" / scenario_data_path
     simulations_path = external_data_path / "simulations"
     saving_path = external_data_path / "weights"
+    # create folders if not exists
+    datasets_path.mkdir(parents=True, exist_ok=True)
+    (datasets_path / "train").mkdir(parents=True, exist_ok=True)
+    (datasets_path / "test").mkdir(parents=True, exist_ok=True)
+    datasets_path.mkdir(parents=True, exist_ok=True)
+    simulations_path.mkdir(parents=True, exist_ok=True)
+    saving_path.mkdir(parents=True, exist_ok=True)
     # Initialize time and date
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -54,10 +61,10 @@ if __name__ == "__main__":
     # Operations commands
     commands = {
         "SAVE_TO_FILE": True,  # Saving results to file or present them over CMD
-        "CREATE_DATA": True,  # Creating new dataset
-        "LOAD_DATA": False,  # Loading data from exist dataset
-        "LOAD_MODEL": False,  # Load specific model for training
-        "TRAIN_MODEL": False,  # Applying training operation
+        "CREATE_DATA": False,  # Creating new dataset
+        "LOAD_DATA": True,  # Loading data from exist dataset
+        "LOAD_MODEL": True,  # Load specific model for training
+        "TRAIN_MODEL": True,  # Applying training operation
         "SAVE_MODEL": False,  # Saving tuned model
         "EVALUATE_MODE": True,  # Evaluating desired algorithms
     }
@@ -70,14 +77,15 @@ if __name__ == "__main__":
     # Define system model parameters
     system_model_params = (
         SystemModelParams()
-        .set_num_sensors(8)
-        .set_num_sources(5)
-        .set_num_observations(100)
-        .set_snr(10)
-        .set_signal_type("NarrowBand")
-        .set_signal_nature("coherent")
-        .set_sensors_dev(eta=0)
-        .set_sv_noise(0)
+        .set_parameter("N", 8)
+        .set_parameter("M", 3)
+        .set_parameter("T", 200)
+        .set_parameter("snr", 10)
+        .set_parameter("signal_type", "NarrowBand")
+        .set_parameter("signal_nature", "non-coherent")
+        .set_parameter("eta", 0)
+        .set_parameter("bias", 0.05)
+        .set_parameter("sv_noise_var", 0)
     )
     # Generate model configuration
     model_config = (
@@ -88,8 +96,8 @@ if __name__ == "__main__":
         .set_model(system_model_params)
     )
     # Define samples size
-    samples_size = 100  # Overall dateset size
-    train_test_ratio = 1  # training and testing datasets ratio
+    samples_size = 100000  # Overall dateset size
+    train_test_ratio = 0.05  # training and testing datasets ratio
     # Sets simulation filename
     simulation_filename = get_simulation_filename(
         system_model_params=system_model_params, model_config=model_config
@@ -153,8 +161,7 @@ if __name__ == "__main__":
         simulation_parameters = (
             TrainingParams()
             .set_batch_size(2048)
-            .set_epochs(40)
-            # .set_model(system_model=samples_model, tau=model.tau, diff_method=model.diff_method)
+            .set_epochs(80)
             .set_model(model=model_config)
             .set_optimizer(optimizer="Adam", learning_rate=0.00001, weight_decay=1e-9)
             .set_training_dataset(train_dataset)
@@ -225,7 +232,9 @@ if __name__ == "__main__":
                 TrainingParams()
                 .set_model(model=model_config)
                 .load_model(
-                    loading_path=saving_path / "final_models" / simulation_filename
+                    loading_path=saving_path
+                    / "final_models"
+                    / simulation_filename
                 )
             )
             model = simulation_parameters.model

@@ -401,21 +401,21 @@ def evaluate(
     # Set default methods for SubspaceNet augmentation
     if not isinstance(augmented_methods, list) and model_type.startswith("SubspaceNet"):
         augmented_methods = [
-            "music",
             # "mvdr",
-            "esprit",
             "r-music",
+            "esprit",
+            # "music",
         ]
     # Set default model-based subspace methods
     if not isinstance(subspace_methods, list):
         subspace_methods = [
             "esprit",
-            "music",
+            # "music",
             "r-music",
             # "mvdr",
-            "sps-r-music",
-            "sps-esprit",
-            "sps-music"
+            # "sps-r-music",
+            # "sps-esprit",
+            # "sps-music"
             # "bb-music",
         ]
     # Evaluate SubspaceNet + differentiable algorithm performances
