@@ -717,7 +717,7 @@ def root_music(Rz: torch.Tensor, M: int, batch_size: int):
     for iter in range(batch_size):
         R = Bs_Rz[iter]
         # Extract eigenvalues and eigenvectors using EVD
-        eigenvalues, eigenvectors = torch.linalg.eig(R)
+        eigenvalues, eigenvectors = torch.linalg.eigh(R)
         # Assign noise subspace as the eigenvectors associated with M greatest eigenvalues
         Un = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, M:]
         # Generate hermitian noise subspace matrix
@@ -774,7 +774,7 @@ def esprit(Rz: torch.Tensor, M: int, batch_size: int):
     for iter in range(batch_size):
         R = Bs_Rz[iter]
         # Extract eigenvalues and eigenvectors using EVD
-        eigenvalues, eigenvectors = torch.linalg.eig(R)
+        eigenvalues, eigenvectors = torch.linalg.eigh(R)
 
         # Get signal subspace
         Us = eigenvectors[:, torch.argsort(torch.abs(eigenvalues)).flip(0)][:, :M]

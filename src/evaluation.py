@@ -365,7 +365,6 @@ def add_random_predictions(M: int, predictions: np.ndarray, algorithm: str):
 
 
 def evaluate(
-    model: nn.Module,
     model_type: str,
     model_test_dataset: list,
     generic_test_dataset: list,
@@ -373,6 +372,7 @@ def evaluate(
     subspace_criterion,
     system_model,
     figures: dict,
+    model: nn.Module = None,
     plot_spec: bool = True,
     augmented_methods: list = None,
     subspace_methods: list = None,
@@ -402,8 +402,8 @@ def evaluate(
     if not isinstance(augmented_methods, list) and model_type.startswith("SubspaceNet"):
         augmented_methods = [
             # "mvdr",
-            "r-music",
-            "esprit",
+            # "r-music",
+            # "esprit",
             # "music",
         ]
     # Set default model-based subspace methods
@@ -411,7 +411,7 @@ def evaluate(
         subspace_methods = [
             "esprit",
             # "music",
-            "r-music",
+            # "r-music",
             # "mvdr",
             # "sps-r-music",
             # "sps-esprit",

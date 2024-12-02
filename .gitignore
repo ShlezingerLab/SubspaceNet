@@ -7,3 +7,5 @@ plotting
 Figures
 src/__pycache__
 data
+.venv/
+.idea/
